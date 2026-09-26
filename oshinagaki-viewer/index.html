@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!-- © 2026 YuraTomaru – MIT License https://opensource.org/licenses/MIT -->
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>お品書き Viewer</title>
+  <meta name="description" content="スプレッドシートから貼り付けた複数サークルのお品書きをプレビューするツール。画像書き出し機能付き。">
+  <meta name="theme-color" content="#0068A5">
+
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="src/style.css">
+</head>
+
+<body>
+  <div class="app">
+    <header class="tool tool-header">
+      <div class="tool-header-text">
+        <h1 class="tool-title">お品書き Viewer</h1>
+        <p class="tool-lead">クレジット不要。他者を傷つける目的で使用しないでください</p>
+      </div>
+      <button type="button" class="theme-toggle-header js-theme-icon" aria-label="テーマ切り替え" title="テーマ切り替え"></button>
+    </header>
+
+    <section class="tool tool-card" aria-label="データ入力">
+      <details open>
+        <summary>データを貼り付け</summary>
+        <div class="field">
+          <label for="ttl">タイトル</label>
+          <input id="ttl" class="input" type="text" placeholder="例：即売会" autocomplete="off">
+        </div>
+        <div class="field">
+          <label id="gridLabel">頒布物リスト</label>
+          <div class="gridbox">
+            <div class="gridscroll" id="gridScroll">
+              <table class="grid" role="grid" aria-labelledby="gridLabel">
+                <colgroup id="gridCols"></colgroup>
+                <tbody id="gridBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="btnGridSample">サンプルを読み込む</button>
+            <button type="button" class="btn" id="btnGridClear">クリア</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="tool bar" aria-label="設定">
+      <div class="bar-ctls">
+        <div class="ctl">
+          <span class="ctl-l">表示</span>
+          <div class="seg" role="group" aria-label="表示形式">
+            <button type="button" data-view="table" aria-pressed="false">テーブル</button>
+            <button type="button" data-view="card" aria-pressed="false">カード</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-l">並び順</span>
+          <div class="seg" role="group" aria-label="並び順">
+            <button type="button" data-sort="orig" aria-pressed="false">入力順</button>
+            <button type="button" data-sort="space" aria-pressed="false">スペース順</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main>
+      <article class="sheet" id="sheet">
+        <h2 class="sheet-title" id="sheetTitle"></h2>
+        <div id="sheetBody"></div>
+      </article>
+    </main>
+
+    <section class="tool capture-launch" aria-label="撮影">
+      <button type="button" class="btn btn-primary" id="btnCapture">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        撮影モード
+      </button>
+    </section>
+  </div>
+
+  <div class="dock" id="dock" role="region" aria-label="撮影モードの操作">
+    <div class="dock-in">
+      <div class="dock-btns">
+        <button type="button" class="btn js-theme"></button>
+        <button type="button" class="btn btn-primary" id="btnSaveImage">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16" />
+          </svg>
+          画像を保存
+        </button>
+      </div>
+      <button type="button" class="btn" id="btnExit">撮影モードを終了</button>
+      <p class="dock-hint">このボタンは5秒後に消えます。画面の右下をタップすると再表示します。</p>
+    </div>
+  </div>
+  <button type="button" class="reveal" id="reveal" aria-label="操作ボタンを表示"></button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="src/main.js"></script>
+</body>
+
+</html>
