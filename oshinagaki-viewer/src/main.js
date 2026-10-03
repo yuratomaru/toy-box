@@ -40,7 +40,6 @@
     grid: SAMPLE.map(r => r.slice()),
     title: '頒布物リスト',
     view: window.innerWidth < 640 ? 'card' : 'table',
-    sort: 'orig',
     mode: 'private',
     theme: null,
     ov: {},
@@ -93,7 +92,6 @@
       if (grid) state.grid = grid;
       if (typeof o.title === 'string') state.title = o.title.slice(0, 200);
       if (o.view === 'table' || o.view === 'card') state.view = o.view;
-      if (o.sort === 'orig' || o.sort === 'space') state.sort = o.sort;
       if (o.theme === 'light' || o.theme === 'dark') state.theme = o.theme;
       // 💡 不正なovが保存されていた場合も、無理に復元せず安全な初期状態(空)にフォールバックする
       state.ov = sanitizeOv(o.ov);
@@ -101,12 +99,9 @@
     } catch (e) { /* 読み込めなくても安全な初期状態のまま続行 */ }
   }
 
-  // 💡 localStorage への保存に失敗した場合（容量超過など）、画面を壊さず控えめに通知する
-  let saveFailedNotified = false;
-  let saveToastTimer;
-  function notifySaveFailure() {
-    if (saveFailedNotified) return;
-    saveFailedNotified = true;
+  // 💡 画面下部に一時的なメッセージを出す共通のトースト表示
+  let toastTimer;
+  function showToast(message, duration = 2600) {
     let el = document.querySelector('.save-toast');
     if (!el) {
       el = document.createElement('div');
@@ -114,10 +109,63 @@
       el.setAttribute('role', 'status');
       document.body.appendChild(el);
     }
-    el.textContent = 'データをブラウザに保存できませんでした。';
-    clearTimeout(saveToastTimer);
+    el.textContent = message;
+    clearTimeout(toastTimer);
     requestAnimationFrame(() => el.classList.add('show'));
-    saveToastTimer = setTimeout(() => { el.classList.remove('show'); }, 4000);
+    toastTimer = setTimeout(() => { el.classList.remove('show'); }, duration);
+  }
+
+  // 💡 ページ内の確認ダイアログ。window.confirm は埋め込み環境（iframe等）でブロックされ
+  //    常に「キャンセル」扱いになることがあるため、自前で用意する。Promise<boolean> を返す。
+  function confirmDialog(message, { okLabel = 'OK', cancelLabel = 'キャンセル', danger = false } = {}) {
+    return new Promise((resolve) => {
+      const prevFocus = document.activeElement;
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML =
+        '<div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirmMsg">' +
+        '<p class="confirm-msg" id="confirmMsg"></p>' +
+        '<div class="confirm-actions">' +
+        '<button type="button" class="btn" data-c="cancel"></button>' +
+        '<button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-c="ok"></button>' +
+        '</div></div>';
+      overlay.querySelector('.confirm-msg').textContent = message;
+      const cancelBtn = overlay.querySelector('[data-c="cancel"]');
+      const okBtn = overlay.querySelector('[data-c="ok"]');
+      cancelBtn.textContent = cancelLabel;
+      okBtn.textContent = okLabel;
+
+      function close(result) {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+        if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+        resolve(result);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+        else if (e.key === 'Tab') {
+          // フォーカスをダイアログ内の2ボタンに閉じ込める
+          e.preventDefault();
+          (document.activeElement === cancelBtn ? okBtn : cancelBtn).focus();
+        }
+      }
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close(false);
+        else if (e.target.closest('[data-c="ok"]')) close(true);
+        else if (e.target.closest('[data-c="cancel"]')) close(false);
+      });
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(overlay);
+      cancelBtn.focus(); // 誤操作を防ぐため、既定のフォーカスは「キャンセル」側
+    });
+  }
+
+  // 💡 localStorage への保存に失敗した場合（容量超過など）、画面を壊さず控えめに通知する
+  let saveFailedNotified = false;
+  function notifySaveFailure() {
+    if (saveFailedNotified) return;
+    saveFailedNotified = true;
+    showToast('データをブラウザに保存できませんでした。', 4000);
   }
   function save() {
     try {
@@ -135,6 +183,130 @@
     while (state.grid.length < r) state.grid.push(COLS.map(() => ''));
     if (c) state.grid.forEach(row => { while (row.length < c) row.push(''); });
   }
+
+  /* --------------------------
+  // ↩️ 元に戻す／やり直す
+  //    対象は「データ」の変更（グリッドの内容・購入チェック状態）のみ。
+  //    表示形式・並び替え設定・テーマなどの見た目の設定は対象外。
+  ---------------------------- */
+  const HISTORY_LIMIT = 50;
+  let historyStack = [];
+  let redoStack = [];
+
+  function snapshotData() {
+    return JSON.stringify({ grid: state.grid, ov: state.ov });
+  }
+  function restoreData(snap) {
+    const o = JSON.parse(snap);
+    state.grid = o.grid;
+    state.ov = o.ov;
+  }
+  // 💡 変更が起きる「前」に呼び出し、直前の状態を履歴として積む
+  function pushHistory() {
+    const snap = snapshotData();
+    if (historyStack.length && historyStack[historyStack.length - 1] === snap) return;
+    historyStack.push(snap);
+    if (historyStack.length > HISTORY_LIMIT) historyStack.shift();
+    redoStack = [];
+    updateUndoRedoButtons();
+  }
+  function undo() {
+    if (!historyStack.length) return;
+    redoStack.push(snapshotData());
+    restoreData(historyStack.pop());
+    save();
+    renderGrid();
+    render();
+    updateUndoRedoButtons();
+    showToast('元に戻しました。');
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    historyStack.push(snapshotData());
+    restoreData(redoStack.pop());
+    save();
+    renderGrid();
+    render();
+    updateUndoRedoButtons();
+    showToast('やり直しました。');
+  }
+  function updateUndoRedoButtons() {
+    $('#btnUndo').disabled = historyStack.length === 0;
+    $('#btnRedo').disabled = redoStack.length === 0;
+  }
+  $('#btnUndo').addEventListener('click', undo);
+  $('#btnRedo').addEventListener('click', redo);
+  // 💡 Ctrl/Cmd+Z で元に戻す、Ctrl/Cmd+Shift+Z または Ctrl+Y でやり直す
+  //    （セル編集中でもスプレッドシート的な「操作単位」の取り消しを優先し、
+  //    ブラウザ標準のcontenteditable内undoより常にこちらを使う）
+  document.addEventListener('keydown', (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (!mod) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+  });
+
+  /* --------------------------
+  // 🔀 行の並べ替え・削除
+  //    購入済み状態(state.ov)は行の「見た目の位置(idx)」をキーに保存しているため、
+  //    行を動かしたり消したりする時は、既存の購入チェックが別の行に移ってしまったり
+  //    消えたりしないよう、ov のキーも一緒にずらす。
+  ---------------------------- */
+  function remapOv(mapIdx) {
+    const next = {};
+    Object.keys(state.ov).forEach((k) => {
+      const oldIdx = Number(k);
+      const newIdx = mapIdx(oldIdx);
+      if (newIdx != null) next[newIdx] = state.ov[k];
+    });
+    state.ov = next;
+  }
+  // 💡 grid上の行番号(r, ヘッダーを含む)→ buildItemsのidx(ヘッダーを除いた0始まり)への変換
+  const rowToIdx = (r) => r - 1;
+
+  function moveGridRow(r, dir) {
+    const target = r + dir;
+    if (r < 1 || target < 1 || target >= state.grid.length) return false;
+    pushHistory();
+    const tmp = state.grid[r];
+    state.grid[r] = state.grid[target];
+    state.grid[target] = tmp;
+    const idxA = rowToIdx(r), idxB = rowToIdx(target);
+    remapOv((old) => (old === idxA ? idxB : old === idxB ? idxA : old));
+    save();
+    renderGrid();
+    render();
+    return true;
+  }
+
+  function deleteGridRow(r) {
+    if (r < 1 || r >= state.grid.length) return;
+    pushHistory();
+    if (state.grid.length <= 2) { // ヘッダーのみになるのは避け、空行に戻すだけにする
+      state.grid[r] = state.grid[r].map(() => '');
+    } else {
+      state.grid.splice(r, 1);
+    }
+    const delIdx = rowToIdx(r);
+    remapOv((old) => (old === delIdx ? null : old > delIdx ? old - 1 : old));
+    save();
+    renderGrid();
+    render();
+  }
+
+  // 💡 セル編集中でも使えるキーボードショートカット（プレビュー側のボタン操作を補完）
+  //    Alt+↑ / Alt+↓ : 現在の行を上下へ移動　/　Alt+Delete（またはAlt+Backspace）: 現在の行を削除
+  gridBodyEl.addEventListener('keydown', (e) => {
+    if (!e.altKey) return;
+    const cellTd = e.target.closest('td[data-r]');
+    if (!cellTd) return;
+    const r = Number(cellTd.dataset.r);
+    if (r < 1) return; // 見出し行は対象外
+    if (e.key === 'ArrowUp') { e.preventDefault(); if (moveGridRow(r, -1)) focusCell(r - 1, Number(cellTd.dataset.c)); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); if (moveGridRow(r, 1)) focusCell(r + 1, Number(cellTd.dataset.c)); }
+    else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteGridRow(r); }
+  });
   function renderGrid() {
     const g = state.grid;
     const n = g[0].length;
@@ -163,6 +335,12 @@
   }
 
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+  // 💡 セルにフォーカスが入った時点＝編集を始める直前の状態を履歴に積む。
+  //    これにより、1文字ごとではなく「このセルへの一連の入力」単位で元に戻せる。
+  gridBodyEl.addEventListener('focusin', (e) => {
+    if (e.target.closest('td[data-r]')) pushHistory();
+  });
 
   gridBodyEl.addEventListener('input', debounce((e) => {
     const td = e.target.closest('td[data-r]');
@@ -247,6 +425,7 @@
     e.preventDefault();
     if (!/[\t\r\n]/.test(text)) {
       // 💡 単一セルへの貼り付け（単なる文字入力と同じ扱い。データセット置き換えではない）
+      // 💡 すでにこのセルへのfocusin時点でpushHistory済みのため、ここでは積まない
       const val = text.length > MAX_CELL_CHARS ? text.slice(0, MAX_CELL_CHARS) : text;
       // 💡 deprecated な execCommand('insertText') を Selection/Range API で置き換え
       const sel = window.getSelection();
@@ -266,17 +445,26 @@
     }
 
     // 💡 スプレッドシート形式（タブ/改行を含む）の貼り付けは、
-    //    「現在のデータセット全体を置き換える操作」として扱う。
-    //    貼り付け範囲より後ろに残っていた古い行・列は破棄し、
-    //    購入状態(state.ov)も idx の誤継承が起きないようリセットする。
+    //    「クリック位置を左上として、その範囲のセルだけを上書きする」操作として扱う。
+    //    以前は貼り付け範囲の外側にあった行・列まで丸ごと切り詰めてしまい、
+    //    「元より小さいデータを貼るとその他の列が消える」「右側に不要な空列ができる」
+    //    という不具合があったため、既存データは常に保持し、必要な分だけ拡張する。
     const r0 = Number(td.dataset.r), c0 = Number(td.dataset.c);
-    const lines = text.replace(/\r/g, '').split('\n');
+    let lines = text.replace(/\r/g, '').split('\n');
     while (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+    let rows = lines.map(line => line.split('\t'));
 
-    const newRowCount = r0 + lines.length;
-    let maxLineCols = 1;
-    lines.forEach(line => { maxLineCols = Math.max(maxLineCols, line.split('\t').length); });
-    const newColCount = c0 + maxLineCols;
+    // 💡 コピー元（スプレッドシート）の選択範囲に含まれていた、末尾の空白列を除去する。
+    //    これをしないと、選択範囲の右端に空セルが混ざっていただけで貼り付け後の
+    //    グリッドが余分に横へ広がってしまう。
+    let pasteCols = 0;
+    rows.forEach(cells => { pasteCols = Math.max(pasteCols, cells.length); });
+    while (pasteCols > 1 && rows.every(cells => (cells[pasteCols - 1] ?? '') === '')) pasteCols--;
+    rows = rows.map(cells => cells.slice(0, pasteCols));
+
+    // 💡 既存のグリッドサイズと貼り付け範囲のうち、大きい方に合わせる（縮小はしない）
+    const newRowCount = Math.max(state.grid.length, r0 + rows.length);
+    const newColCount = Math.max(state.grid[0] ? state.grid[0].length : COLS.length, c0 + pasteCols);
 
     // 💡 大量データによるブラウザフリーズを防止：上限を超える場合は中途半端に反映せず、
     //    理由がわかるメッセージを表示してこの貼り付けを中止する
@@ -288,8 +476,8 @@
       alert(`列数が多すぎます。最大${MAX_COLS}列まで貼り付けできます。`);
       return;
     }
-    for (const line of lines) {
-      for (const val of line.split('\t')) {
+    for (const cells of rows) {
+      for (const val of cells) {
         if (val.length > MAX_CELL_CHARS) {
           alert(`1つのセルに入力できる文字数の上限（${MAX_CELL_CHARS}文字）を超えています。`);
           return;
@@ -297,32 +485,67 @@
       }
     }
 
-    // 貼り付け範囲を新しいデータセットとして反映し、範囲外の古い行・古い列は残さない
-    state.grid.length = newRowCount;
-    for (let r = 0; r < newRowCount; r++) {
-      if (!Array.isArray(state.grid[r])) state.grid[r] = [];
-      state.grid[r].length = newColCount;
-      for (let c = 0; c < newColCount; c++) {
-        if (state.grid[r][c] == null) state.grid[r][c] = '';
-      }
-    }
-    lines.forEach((line, dr) => {
-      const cells = line.split('\t');
+    // 💡 グリッドを必要な分だけ拡張（既存の行・列・値はそのまま保持する）
+    ensureSize(newRowCount, newColCount);
+    rows.forEach((cells, dr) => {
       cells.forEach((val, dc) => {
         state.grid[r0 + dr][c0 + dc] = val;
       });
     });
-
-    // 💡 データセットを丸ごと置き換えたので、以前の購入済み状態(idxキー)を引き継がない
-    state.ov = {};
 
     save();
     render();
     focusCell(r0, c0); // 💡 focusCell内でrenderGrid()も呼ばれ、編集グリッド側の表示も新しいサイズに更新される
   });
 
-  $('#btnGridSample').addEventListener('click', () => { state.grid = SAMPLE.map(r => r.slice()); state.ov = {}; save(); renderGrid(); render(); });
-  $('#btnGridClear').addEventListener('click', () => { state.grid = emptyGrid(MIN_ROWS); state.ov = {}; save(); renderGrid(); render(); });
+  // 💡 グリッドの内容をTSV形式（タブ区切り・改行区切り）でクリップボードにコピーする。
+  //    この形式ならGoogleスプレッドシートやExcelにそのまま貼り付けられる。
+  async function copyGridToClipboard() {
+    const tsv = state.grid.map(row => row.join('\t')).join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      showToast('表の内容をコピーしました。');
+    } catch (e) {
+      // 💡 Clipboard APIが使えない環境（非HTTPS・権限拒否など）向けのフォールバック
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = tsv;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('表の内容をコピーしました。');
+      } catch (e2) {
+        showToast('コピーに失敗しました。お使いのブラウザではこの機能がご利用いただけない可能性があります。', 4000);
+      }
+    }
+  }
+  $('#btnGridCopy').addEventListener('click', copyGridToClipboard);
+
+  function loadSample() {
+    pushHistory();
+    state.grid = SAMPLE.map(r => r.slice());
+    state.ov = {};
+    save();
+    renderGrid();
+    render();
+    showToast('サンプルを読み込みました。');
+  }
+  $('#btnGridSample').addEventListener('click', loadSample);
+  $('#btnGridClear').addEventListener('click', async () => {
+    const ok = await confirmDialog('入力したデータをすべて消去します。\nよろしいですか？（「元に戻す」で復元できます）', { okLabel: '消去する', danger: true });
+    if (!ok) return;
+    pushHistory();
+    state.grid = emptyGrid(MIN_ROWS);
+    state.ov = {};
+    save();
+    renderGrid();
+    render();
+    showToast('データをクリアしました。');
+  });
 
   /* ---------- データ解析 ---------- */
   const SYN = {
@@ -434,7 +657,7 @@
     return 3;
   }
 
-  function groupItems(items) {
+  function groupItems(items, catSort = false) {
     const groups = [];
     let cur = null;
     items.forEach(it => {
@@ -442,8 +665,10 @@
       if (key && cur && cur.key === key) cur.items.push(it);
       else { cur = { key, day: it.day, num: it.num, circle: it.circle, items: [it] }; groups.push(cur); }
     });
-    // 💡 グループ内を優先度順に並べ替え（同順位内では元の順序を保持）
-    groups.forEach(g => { if (g.items.length > 1) g.items.sort((a, b) => catPriority(a) - catPriority(b)); });
+    // 💡 カテゴリ順は「並び替えを反映」で選んだ時だけ適用するオプション（既定では入力順のまま）
+    if (catSort) {
+      groups.forEach(g => { if (g.items.length > 1) g.items.sort((a, b) => catPriority(a) - catPriority(b)); });
+    }
     return groups;
   }
 
@@ -491,11 +716,22 @@
     return `<button type="button" class="cbx" role="checkbox" aria-checked="${on}" aria-label="購入済み：${esc(nameOf(it))}" data-i="${it.idx}">${on ? CHECK_SVG : '<span aria-hidden="true">未</span>'}</button>`;
   }
 
+  // 💡 1項目分の「上へ/下へ移動・削除」ボタン。プレビュー（テーブル／カード）の各項目に表示する。
+  function itemActionsHTML(it) {
+    const name = esc(nameOf(it));
+    return `<span class="row-actions">
+      <button type="button" class="row-act" data-item-act="up" data-idx="${it.idx}" title="上へ移動" aria-label="${name}を上へ移動">▲</button>
+      <button type="button" class="row-act" data-item-act="down" data-idx="${it.idx}" title="下へ移動" aria-label="${name}を下へ移動">▼</button>
+      <button type="button" class="row-act row-act-del" data-item-act="del" data-idx="${it.idx}" title="削除" aria-label="${name}を削除">×</button>
+    </span>`;
+  }
+
   function entryHTML(it, mode, tm) {
     const tagCls = it.cat ? tm(it.cat) : '';
     const on = mode === 'private' && effOn(it);
     const chk = mode === 'private' ? cbxHTML(it, on) : '';
     const note = it.note ? `<p class="note">${esc(it.note)}</p>` : '';
+    const actions = mode === 'private' ? itemActionsHTML(it) : '';
     return `<div class="entry${on ? ' is-done' : ''}">
       <div class="entry-line">
         ${chk}
@@ -507,6 +743,7 @@
           </div>
           ${note}
         </div>
+        ${actions}
       </div>
     </div>`;
   }
@@ -539,6 +776,7 @@
     const groupDoneCls = spaceInfo && spaceInfo.groupOn ? ' grp-purchased' : '';
     const spaceTd = spaceInfo ? `<td class="c-space dim${groupDoneCls}"${spanAttr}>${spaceLiteHTML(it, 'sv-tbl')}</td>` : '';
     const circleTd = spaceInfo ? `<td class="c-circle dim${groupDoneCls}"${spanAttr}>${it.circle ? esc(it.circle) : ''}</td>` : '';
+    const actTd = mode === 'private' ? `<td class="c-act">${itemActionsHTML(it)}</td>` : '';
     return `<tr class="entryrow${on ? ' is-done' : ''}${isMid ? ' grp-mid' : ''}${isLast ? ' grp-last' : ''}">
       ${chkTd}
       ${spaceTd}
@@ -548,6 +786,7 @@
         ${meta}
       </td>
       <td class="c-price dim">${priceHTML(it)}</td>
+      ${actTd}
     </tr>`;
   }
 
@@ -562,6 +801,7 @@
       return g.items.map((it, i) => rowHTML(it, mode, tm, i === 0 ? { rowspan: n, groupOn } : null, i < n - 1, !isLastGroup && i === n - 1)).join('');
     }).join('');
     const chkTh = mode === 'private' ? '<th class="c-chk" scope="col">購入済</th>' : '';
+    const actTh = mode === 'private' ? '<th class="c-act" scope="col">操作</th>' : '';
     // 💡 ユーザーがドラッグで調整した幅（state.circleColW）があれば、ブレークポイントに関わらず優先する
     const circleWStyle = state.circleColW ? ` style="--circle-w:${state.circleColW}px"` : '';
     return `<div class="tbl-wrap"><table class="tbl"${circleWStyle}>
@@ -571,6 +811,7 @@
         <th class="c-circle" scope="col">サークル名<span class="col-resizer" data-col-resizer="circle" role="separator" aria-orientation="vertical" aria-label="サークル名の列幅を調整" tabindex="0"></span></th>
         <th class="c-name" scope="col">頒布物</th>
         <th class="c-price" scope="col">頒布価格</th>
+        ${actTh}
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
@@ -614,7 +855,7 @@
       return;
     }
     const tm = makeTagMapper();
-    const ordered = state.sort === 'space' ? items.slice().sort(spaceCompare) : items;
+    const ordered = items; // 表示は常に入力順（並び替えは「並び替えを反映」で入力データ自体を並べ替える）
     const list = state.view === 'card'
       ? `<ul class="cards">${groupItems(ordered).map(g => groupCardHTML(g, state.mode, tm)).join('')}</ul>`
       : tableHTML(ordered, state.mode, tm);
@@ -641,20 +882,63 @@
       b.setAttribute('title', iconLabel);
     });
   }
+  const optSortSpace = $('#optSortSpace'), optCatSort = $('#optCatSort');
   function syncControls() {
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
-    document.querySelectorAll('[data-sort]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sort === state.sort)));
   }
 
   ttl.addEventListener('input', () => { state.title = ttl.value; save(); render(); });
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; syncControls(); save(); render(); }));
-  document.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { state.sort = b.dataset.sort; syncControls(); save(); render(); }));
+  // 💡 「並び替えを反映」: 選んだ条件で入力データの行順そのものを一度だけ並べ替える。
+  //    反映後は通常のデータと同じ扱いなので、その後の移動・削除は自由（元に戻すも可能）。
+  function applySortToData() {
+    const bySpace = optSortSpace.checked, byCat = optCatSort.checked;
+    if (!bySpace && !byCat) { showToast('並び替えの条件を選んでください。'); return; }
+    const offset = detectHeader(state.grid[0]) ? 1 : 0;
+    const items = buildItems(state.grid);
+    if (!items.length) { showToast('並び替えるデータがありません。'); return; }
+
+    const ordered = bySpace ? items.slice().sort(spaceCompare) : items;
+    const newItems = groupItems(ordered, byCat).flatMap(g => g.items);
+
+    // 項目として認識されない行（空行など）は元の順序のまま末尾に残す
+    const used = new Set(newItems.map(it => it.idx));
+    const dataRows = state.grid.slice(offset);
+    const restIdx = [];
+    dataRows.forEach((_, i) => { if (!used.has(i)) restIdx.push(i); });
+
+    const order = newItems.map(it => it.idx).concat(restIdx); // 新しい位置k → 元のdata index
+    const newIdxOf = {};
+    order.forEach((oldI, k) => { newIdxOf[oldI] = k; });
+
+    pushHistory();
+    state.grid = state.grid.slice(0, offset).concat(order.map(i => dataRows[i]));
+    remapOv((old) => (old in newIdxOf ? newIdxOf[old] : null));
+    save();
+    renderGrid();
+    render();
+    showToast('並び替えを反映しました。（「元に戻す」で取り消せます）', 3200);
+  }
+  $('#btnApplySort').addEventListener('click', applySortToData);
   document.querySelectorAll('.js-theme, .js-theme-icon').forEach(b => b.addEventListener('click', () => { state.theme = effTheme() === 'dark' ? 'light' : 'dark'; applyTheme(); save(); }));
   mqDark.addEventListener('change', () => { if (!state.theme) applyTheme(); });
 
   body.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act="sample"]');
-    if (act) { state.grid = SAMPLE.map(r => r.slice()); state.ov = {}; save(); renderGrid(); render(); return; }
+    if (act) { loadSample(); return; }
+
+    // 💡 プレビュー上の「上へ/下へ移動・削除」ボタン。項目のidx→入力グリッドの行番号(idx+1)に変換して実行する
+    const itemBtn = e.target.closest('[data-item-act]');
+    if (itemBtn) {
+      if (itemBtn.disabled) return;
+      const r = Number(itemBtn.dataset.idx) + 1;
+      const kind = itemBtn.dataset.itemAct;
+      if (kind === 'up') moveGridRow(r, -1);
+      else if (kind === 'down') moveGridRow(r, 1);
+      else if (kind === 'del') deleteGridRow(r);
+      return;
+    }
+
     const b = e.target.closest('[data-i]');
     if (!b) return;
     const i = Number(b.dataset.i);
@@ -800,12 +1084,6 @@
 
     // 💡 実際に書き出す予定の寸法（#sheetの表示サイズ×希望scale）を先に見積もり、
     //    この端末のCanvas上限内かどうかを本番実行前に確認する。
-    //    ここでWebフォントの読み込み完了を先に待つのが重要：後回しにすると、
-    //    測定後にフォントが差し替わって行の高さが変化し、実際にhtml2canvasが
-    //    書き出すサイズとズレて「想定サイズとの一致チェック」が誤爆する原因になる。
-    if (window.document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch (e) { /* フォント状態取得に失敗しても続行 */ }
-    }
     const contentW = sheetEl.scrollWidth;
     const contentH = sheetEl.scrollHeight;
     const desiredScale = Math.max(2, window.devicePixelRatio || 1);
@@ -819,8 +1097,9 @@
         alert('リストの行数が多すぎるため、この端末では画像として保存できません。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
         return;
       }
-      const proceed = confirm(
-        `画像のサイズが大きすぎるため、この端末の上限に合わせて画質を下げます（${fmtScale(desiredScale)}倍 → ${fmtScale(safeScale)}倍）。\nこのまま保存を続けますか？`
+      const proceed = await confirmDialog(
+        `画像のサイズが大きすぎるため、この端末の上限に合わせて画質を下げます（${fmtScale(desiredScale)}倍 → ${fmtScale(safeScale)}倍）。\nこのまま保存を続けますか？`,
+        { okLabel: '続ける' }
       );
       if (!proceed) return;
       scale = safeScale;
@@ -833,6 +1112,10 @@
     // 💡 ドックが写り込まないよう、生成中は一旦隠す（プレビューはそのまま）
     dock.style.visibility = 'hidden';
     try {
+      // 💡 キャプチャ前にWebフォントの読み込み完了を待つ（未完了だと別フォントで書き出されてしまうため）
+      if (window.document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) { /* フォント状態取得に失敗しても続行 */ }
+      }
       // 💡 #sheet の“現在の見た目”をそのまま書き出す：
       //    列幅調整（サークル名/頒布物の境目のドラッグ）やテーマ、
       //    表示モード（テーブル/カード）・並び順など、ユーザーが
@@ -850,18 +1133,16 @@
       });
 
       // 💡 想定サイズとの一致チェック：
-      //    Canvas上限に当たって大きく欠けていないかを検知するのが目的。
-      //    html2canvasは実ブラウザとは別経路で最終寸法を確定するため、
-      //    文字送りやサブピクセルの丸め等による数%程度のズレは正常発生しうる。
-      //    そのため閾値は絶対px指定ではなく、相対値(5%、最低60px)の
-      //    余裕を持たせ、正常なケースを誤って弾かないようにする。
+      //    事前チェックを通過していても、キャプチャ直前のレイアウト変化や
+      //    html2canvas内部での丸め等で最終的な寸法がずれる可能性はゼロではない。
+      //    「白紙・欠損画像に気づかず保存してしまう」事態を避けるため、
+      //    生成後のcanvas実寸を想定値と突き合わせ、大きくずれていれば保存を中止する。
       const expectedW = Math.round(contentW * scale);
       const expectedH = Math.round(contentH * scale);
-      const tolW = Math.max(60, expectedW * 0.05);
-      const tolH = Math.max(60, expectedH * 0.05);
-      if (Math.abs(canvas.width - expectedW) > tolW || Math.abs(canvas.height - expectedH) > tolH) {
-        console.error('canvas size mismatch', { expectedW, expectedH, actualW: canvas.width, actualH: canvas.height, tolW, tolH });
-        alert('画像の生成結果が想定サイズと大きく異なったため、保存を中止しました（お使いの端末の制限の可能性があります）。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
+      const TOLERANCE_PX = 4; // 端数丸め程度のズレは許容する
+      if (Math.abs(canvas.width - expectedW) > TOLERANCE_PX || Math.abs(canvas.height - expectedH) > TOLERANCE_PX) {
+        console.error('canvas size mismatch', { expectedW, expectedH, actualW: canvas.width, actualH: canvas.height });
+        alert('画像の生成に失敗しました（端末依存の問題の可能性があります）。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
         return;
       }
 
