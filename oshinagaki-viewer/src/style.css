@@ -208,6 +208,36 @@ h1, h2, h3, p { margin: 0; }
 }
 .btn svg { flex: none; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+/* 💡 クリアのような取り消しにくい操作は、危険なボタンだとひと目でわかるようにする */
+.btn-danger { background: #B3261E; border-color: #B3261E; color: #FFFFFF; }
+.btn-danger:hover { background: #8E1E18; border-color: #8E1E18; }
+/* 💡 元に戻す/やり直す用の正方形アイコンボタン */
+.btn-icon { width: 48px; padding: 0; }
+.btn-sm { height: 40px; padding: 0 14px; font-size: 14px; }
+.row-sep { flex: none; width: 2px; align-self: stretch; background: var(--line); margin: 4px 2px; }
+
+/* ============ 並び替えオプション ============ */
+.sort-opts { margin-top: 16px; }
+.sort-opts-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 8px;
+}
+.sort-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sort-opt input[type="checkbox"] {
+  width: 20px; height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 
 /* ============ セルルック入力グリッド ============ */
 .gridbox { border: 2px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
@@ -220,6 +250,39 @@ h1, h2, h3, p { margin: 0; }
   font-size: 12px; font-weight: 700;
   width: 32px; min-width: 32px; text-align: center;
 }
+/* 💡 行の並べ替え・削除ボタンは、触りやすいプレビュー側（テーブル/カード）に配置する。
+   下の .row-act* / .item-actions は、入力グリッドではなくプレビューのために使う。 */
+.row-actions {
+  display: flex;
+  gap: 2px;
+  /* 💡 普段は控えめに。行にカーソルが乗る/キーボード操作で入る時だけはっきり見せる */
+  opacity: .35;
+  transition: opacity .15s;
+}
+.tbl tbody tr:hover .row-actions,
+.tbl tbody tr:focus-within .row-actions,
+.card:hover .row-actions,
+.card:focus-within .row-actions,
+.entry:hover .row-actions,
+.entry:focus-within .row-actions { opacity: 1; }
+.row-act {
+  flex: none;
+  width: 20px; height: 20px;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.row-act:hover:not(:disabled) { background: var(--sheet); color: var(--ink); }
+.row-act:disabled { opacity: .3; cursor: not-allowed; }
+.row-act-del { color: #B3261E; border-color: #B3261E; }
+.row-act-del:hover:not(:disabled) { background: #B3261E; color: #FFFFFF; }
+.row-act:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .grid td.cell {
   height: 40px; min-width: 88px; padding: 8px;
   font-size: 14px; line-height: 1.5;
@@ -425,6 +488,7 @@ h1, h2, h3, p { margin: 0; }
 
 .ghc { font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .entry-line { display: flex; align-items: flex-start; gap: 16px; }
+.entry-line .row-actions { flex: none; margin-left: auto; }
 .entry-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 .entry-sub { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 24px; }
 .entry .title { font-size: 20px; line-height: 1.4; font-weight: 700; overflow-wrap: anywhere; }
@@ -489,6 +553,10 @@ h1, h2, h3, p { margin: 0; }
 .col-resizer.resizing::after { background: var(--accent); }
 .col-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .tbl .c-price { width: 84px; text-align: right; }
+/* 💡 行の並べ替え・削除ボタン列（私用モードのみ表示） */
+.tbl .c-act { width: 72px; vertical-align: middle; }
+.tbl .c-act .row-actions { margin-left: auto; width: fit-content; }
+.tbl .c-act .row-act[disabled] { opacity: .2; }
 /* 💡 「¥100,000,000」のような桁数の多い価格は72-104px幅に収まらず右にはみ出していたため、
    通常時の見た目は変えずに、収まらない場合だけ折り返して隠れないようにする */
 .tbl .price { font-size: 16px; white-space: normal; overflow-wrap: anywhere; }
@@ -597,3 +665,28 @@ html.capture .reveal { display: block; }
   .app { padding: 0; max-width: none; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ============ 確認ダイアログ（window.confirmの代わり） ============ */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 15, 30, .55);
+}
+.confirm-box {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.confirm-msg { font-size: 15px; font-weight: 700; line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+@media print { .confirm-overlay { display: none !important; } }
