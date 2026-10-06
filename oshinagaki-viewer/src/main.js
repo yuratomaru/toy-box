@@ -1084,6 +1084,12 @@
 
     // 💡 実際に書き出す予定の寸法（#sheetの表示サイズ×希望scale）を先に見積もり、
     //    この端末のCanvas上限内かどうかを本番実行前に確認する。
+    //    ここでWebフォントの読み込み完了を先に待つのが重要：後回しにすると、
+    //    測定後にフォントが差し替わって行の高さが変化し、実際にhtml2canvasが
+    //    書き出すサイズとズレて「想定サイズとの一致チェック」が誤爆する原因になる。
+    if (window.document.fonts && document.fonts.ready) {
+      try { await document.fonts.ready; } catch (e) { /* フォント状態取得に失敗しても続行 */ }
+    }
     const contentW = sheetEl.scrollWidth;
     const contentH = sheetEl.scrollHeight;
     const desiredScale = Math.max(2, window.devicePixelRatio || 1);
@@ -1112,10 +1118,6 @@
     // 💡 ドックが写り込まないよう、生成中は一旦隠す（プレビューはそのまま）
     dock.style.visibility = 'hidden';
     try {
-      // 💡 キャプチャ前にWebフォントの読み込み完了を待つ（未完了だと別フォントで書き出されてしまうため）
-      if (window.document.fonts && document.fonts.ready) {
-        try { await document.fonts.ready; } catch (e) { /* フォント状態取得に失敗しても続行 */ }
-      }
       // 💡 #sheet の“現在の見た目”をそのまま書き出す：
       //    列幅調整（サークル名/頒布物の境目のドラッグ）やテーマ、
       //    表示モード（テーブル/カード）・並び順など、ユーザーが
@@ -1133,16 +1135,18 @@
       });
 
       // 💡 想定サイズとの一致チェック：
-      //    事前チェックを通過していても、キャプチャ直前のレイアウト変化や
-      //    html2canvas内部での丸め等で最終的な寸法がずれる可能性はゼロではない。
-      //    「白紙・欠損画像に気づかず保存してしまう」事態を避けるため、
-      //    生成後のcanvas実寸を想定値と突き合わせ、大きくずれていれば保存を中止する。
+      //    Canvas上限に当たって大きく欠けていないかを検知するのが目的。
+      //    html2canvasは実ブラウザとは別経路で最終寸法を確定するため、
+      //    文字送りやサブピクセルの丸め等による数%程度のズレは正常発生しうる。
+      //    そのため閾値は絶対px指定ではなく、相対値(5%、最低60px)の
+      //    余裕を持たせ、正常なケースを誤って弾かないようにする。
       const expectedW = Math.round(contentW * scale);
       const expectedH = Math.round(contentH * scale);
-      const TOLERANCE_PX = 4; // 端数丸め程度のズレは許容する
-      if (Math.abs(canvas.width - expectedW) > TOLERANCE_PX || Math.abs(canvas.height - expectedH) > TOLERANCE_PX) {
-        console.error('canvas size mismatch', { expectedW, expectedH, actualW: canvas.width, actualH: canvas.height });
-        alert('画像の生成に失敗しました（端末依存の問題の可能性があります）。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
+      const tolW = Math.max(60, expectedW * 0.05);
+      const tolH = Math.max(60, expectedH * 0.05);
+      if (Math.abs(canvas.width - expectedW) > tolW || Math.abs(canvas.height - expectedH) > tolH) {
+        console.error('canvas size mismatch', { expectedW, expectedH, actualW: canvas.width, actualH: canvas.height, tolW, tolH });
+        alert('画像の生成結果が想定サイズと大きく異なったため、保存を中止しました（お使いの端末の制限の可能性があります）。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
         return;
       }
 
