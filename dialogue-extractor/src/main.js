@@ -1,6 +1,6 @@
 const SPEAKER_CHAR = /^[\u3040-\u309F\u30A0-\u30FFー\u4E00-\u9FFF々]$/;
 
-// 行頭の話者タグとして認識する最大文字数（抽出オプションで変更。既定は1文字）
+// 行頭の話者タグとして認識する最大文字数(抽出オプションで変更。既定は1文字)
 const SPEAKER_LEN_DEFAULT = 1;
 const SPEAKER_LEN_MIN = 1;
 const SPEAKER_LEN_MAX = 10;
@@ -32,7 +32,7 @@ const PERSON_KEYWORDS = {
     'そちら', 'そっち', 'そなた', '御主', 'おぬし', '汝', 'なんじ',
     '貴殿', '貴公', 'お宅', 'おたく', '貴君',
     '君たち', '君達', 'お前たち', 'お前ら', 'あなたたち', '皆さん', 'みなさん', '皆様',
-    // 呼びかけ語・役職・続柄など（二人称的に使われやすいもの）
+    // 呼びかけ語・役職・続柄など(二人称的に使われやすいもの)
     '支部長', 'エージェント', 'チルドレン', '教官', '班長', '隊長',
     '先生', '博士', 'ドクター', '所長', '部長', '課長', '社長', '委員長', '会長',
     'マスター', 'リーダー', 'ボス', '相棒', '先輩', '後輩',
@@ -53,7 +53,7 @@ const PERSON_KEYWORDS = {
   ]
 };
 
-// 敬称付きの名前（○○さん、○○先生 など）と、クォート/かぎ括弧で囲まれた固有名詞は
+// 敬称付きの名前(○○さん、○○先生 など)と、クォート/かぎ括弧で囲まれた固有名詞は
 // 単語一致では拾えないため、正規表現で三人称っぽい表現として検出する。
 const NAME_CHARS = '[一-龠々ぁ-んァ-ヶA-Za-z0-9ー]+';
 const HONORIFIC_SUFFIXES = ['さん', 'くん', '君', 'ちゃん', '氏', '先生', '先輩', '後輩', '殿', '様', 'さま'];
@@ -104,7 +104,7 @@ function setTheme(mode) {
   saveState();
 }
 
-/* ---------- 永続化（localStorageに自動保存） ---------- */
+/* ---------- 永続化(localStorageに自動保存) ---------- */
 const STORAGE_KEY = 'serifu-extractor-state-v1';
 let saveTimer = null;
 
@@ -155,7 +155,7 @@ function saveState() {
     const data = { ...captureSnapshot(), theme };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
-    // ストレージが使えない環境（プライベートブラウズ等）では黙って諦める
+    // ストレージが使えない環境(プライベートブラウズ等)では黙って諦める
   }
 }
 
@@ -168,7 +168,7 @@ function loadState() {
   }
 }
 
-/* ---------- 元に戻す／やり直し（Ctrl+Z / Ctrl+Y） ---------- */
+/* ---------- 元に戻す／やり直し(Ctrl+Z / Ctrl+Y) ---------- */
 const HISTORY_LIMIT = 50;
 let historyStack = [];
 let historyIndex = -1;
@@ -185,7 +185,7 @@ function updateUndoRedoButtons() {
 function pushHistory() {
   if (isRestoringHistory) return;
   const snapshot = JSON.stringify(captureSnapshot());
-  // 直前と内容が同じなら積まない（確定クリックの連打などでスタックが無駄に伸びるのを防ぐ）
+  // 直前と内容が同じなら積まない(確定クリックの連打などでスタックが無駄に伸びるのを防ぐ)
   if (historyIndex >= 0 && historyStack[historyIndex] === snapshot) { updateUndoRedoButtons(); return; }
   historyStack = historyStack.slice(0, historyIndex + 1);
   historyStack.push(snapshot);
@@ -241,7 +241,7 @@ function initFromStorage() {
       document.documentElement.setAttribute('data-theme', saved.theme);
     }
     applySnapshot(saved);
-    document.getElementById('status').textContent = `${extracted.length} 件のセリフを抽出しました（前回の内容を復元しました）。`;
+    document.getElementById('status').textContent = `${extracted.length} 件のセリフを抽出しました(前回の内容を復元しました)。`;
     renderDictionary();
     renderAll();
   } else {
@@ -363,10 +363,10 @@ const EXPORT_CAT_ORDER = [
   { cat: '1', label: '一人称' },
   { cat: '2', label: '二人称' },
   { cat: '3', label: '三人称' },
-  { cat: 'other', label: 'それ以外（未確定）' }
+  { cat: 'other', label: 'それ以外(未確定)' }
 ];
 
-// クリックで確定された人称、または手動指定された人称を返す（どちらも無ければ空配列＝未確定）
+// クリックで確定された人称、または手動指定された人称を返す(どちらも無ければ空配列＝未確定)
 function resolvedCatsOf(d) {
   if (lineConfirmedCats[d.id] && lineConfirmedCats[d.id].size > 0) return [...lineConfirmedCats[d.id]];
   if (lineCategory[d.id]) return [lineCategory[d.id]];
@@ -378,7 +378,7 @@ function buildSpeakerExportText(items) {
   items.forEach(d => {
     const cats = resolvedCatsOf(d);
     const lineLabel = d.startLine === d.endLine ? `${d.startLine}行目` : `${d.startLine}〜${d.endLine}行目`;
-    const entry = `（${lineLabel}）\n${d.body}`;
+    const entry = `(${lineLabel})\n${d.body}`;
     if (cats.length === 0) {
       buckets.other.push(entry);
     } else {
@@ -389,7 +389,7 @@ function buildSpeakerExportText(items) {
 
   return EXPORT_CAT_ORDER
     .filter(({ cat }) => buckets[cat].length > 0)
-    .map(({ cat, label }) => `■ ${label}（${buckets[cat].length}件）\n\n${buckets[cat].join('\n\n')}`)
+    .map(({ cat, label }) => `■ ${label}(${buckets[cat].length}件)\n\n${buckets[cat].join('\n\n')}`)
     .join('\n\n\n');
 }
 
@@ -615,7 +615,7 @@ document.getElementById('dictClear').addEventListener('click', () => {
   if (extracted.length) renderSpeakers();
 });
 
-/* ---------- 辞書インポート（テキストファイル / 貼り付けテキストから単語を取り込む） ---------- */
+/* ---------- 辞書インポート(テキストファイル / 貼り付けテキストから単語を取り込む) ---------- */
 const DICT_HEADER_RE = [
   { re: /^[\[【(]?\s*(一人称|1人称|1)\s*[\]】):：]?$/, cat: '1' },
   { re: /^[\[【(]?\s*(二人称|2人称|2)\s*[\]】):：]?$/, cat: '2' },
@@ -686,10 +686,10 @@ document.getElementById('dictImportBtn').addEventListener('click', () => {
   const total = added['1'].length + added['2'].length + added['3'].length;
   if (total) {
     statusEl.textContent = `一人称${added['1'].length}件・二人称${added['2'].length}件・三人称${added['3'].length}件を追加しました。` +
-      (unrecognized ? `（見出しが見つからず無視した行：${unrecognized}件）` : '');
+      (unrecognized ? `(見出しが見つからず無視した行：${unrecognized}件)` : '');
   } else {
     statusEl.textContent = '追加できる新しい単語が見つかりませんでした。' +
-      (unrecognized ? '【一人称】のような見出し行があるか確認してください。' : '（すべて登録済みの単語でした）');
+      (unrecognized ? '【一人称】のような見出し行があるか確認してください。' : '(すべて登録済みの単語でした)');
   }
   renderDictionary();
   if (extracted.length) renderSpeakers();
@@ -845,7 +845,7 @@ function renderSpeakers() {
           }).join('')
         : '<div class="hint-none">該当なし</div>';
       return `<div class="hint-col ${cls}">
-        <div class="hint-title">${label}（${examples.length}件）</div>
+        <div class="hint-title">${label}(${examples.length}件)</div>
         ${body}
       </div>`;
     }).join('');
@@ -853,7 +853,7 @@ function renderSpeakers() {
     const isConfirmed = !!speakerConfirmed[key];
     const leftoverHtml = isConfirmed
       ? `<div class="leftover-block">
-          <div class="leftover-title">まだ確定していないセリフ（${leftoverItems.length}件）</div>
+          <div class="leftover-title">まだ確定していないセリフ(${leftoverItems.length}件)</div>
           ${leftoverItems.length
             ? leftoverItems.map(li => `<div class="item">
                 <span class="line-tag">${li.lineLabel}</span>
