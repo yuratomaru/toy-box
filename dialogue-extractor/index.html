@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<!-- © 2026 YuraTomaru – MIT License https://opensource.org/licenses/MIT -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>セリフ抽出ツール</title>
+<meta name="description" content="文章からセリフ(鍵かっこ発言)を抽出し、話者ごとに整理・人称分類するツール">
+<meta name="theme-color" content="#0068A5">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="セリフ抽出ツール">
+<meta property="og:title" content="セリフ抽出ツール">
+<meta property="og:description" content="文章からセリフ(鍵かっこ発言)を抽出し、話者ごとに整理・人称分類するツール">
+<meta property="og:url" content="https://yuratomaru.github.io/toy-box/dialogue-extractor/">
+<meta property="og:locale" content="ja_JP">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="セリフ抽出ツール">
+<meta name="twitter:description" content="文章からセリフ(鍵かっこ発言)を抽出し、話者ごとに整理・人称分類するツール">
+
+<link rel="canonical" href="https://yuratomaru.github.io/toy-box/dialogue-extractor/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>セリフ抽出ツール</h1>
+        <p>処理はブラウザ内で完結し、外部に送信されません。</p>
+      </div>
+      <div class="header-actions">
+        <button id="undoBtn" class="theme-toggle" type="button" aria-label="元に戻す (Ctrl+Z)" title="元に戻す (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-1"/></svg>
+        </button>
+        <button id="redoBtn" class="theme-toggle" type="button" aria-label="やり直す (Ctrl+Y)" title="やり直す (Ctrl+Y)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 7 5 5-5 5"/><path d="M20 12H10a6 6 0 0 0 0 12h1"/></svg>
+        </button>
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="ダークモードに切り替え" title="ダークモードに切り替え"></button>
+      </div>
+    </div>
+    <details class="howto">
+      <summary>抽出例</summary>
+      <div class="howto-body">
+        <div class="howto-examples">
+          <div class="howto-example"><span class="howto-tag yes">対象</span>母「おはよう」<span style="color:var(--ink-3); margin-left:auto;">行頭が1文字の話者タグ＋セリフ</span></div>
+          <div class="howto-example"><span class="howto-tag yes">対象</span>「今日はいい天気だね」<span style="color:var(--ink-3); margin-left:auto;">行全体がセリフだけ</span></div>
+          <div class="howto-example"><span class="howto-tag no">対象外</span>太郎は「おはよう」と答えた。<span style="color:var(--ink-3); margin-left:auto;">文中に紛れている</span></div>
+          <div class="howto-example"><span class="howto-tag yes">対象</span><span>▼太郎<br>「今日はいい天気だね」</span><span style="color:var(--ink-3); margin-left:auto;">▼見出しの直後はセリフが続く間その話者の発言になる</span></div>
+        </div>
+      </div>
+    </details>
+  </header>
+
+  <details class="section" id="textSection" open>
+    <summary>抽出したい文章を入力</summary>
+    <textarea id="input" placeholder="ここにテキストを貼り付けてください。">母「おはよう、今日は元気？」
+太郎はそれを聞いて微笑んだ。彼は「おはよう」と小さく答えた。
+「あなたのことが心配だったのよ」
+兄「そうだな。俺も同じ気持ちだ」
+「これは
+複数行にまたがる
+セリフの例です。私はそう思う」
+妹「うん、わかった。彼女にも伝えておくね」
+
+▼太郎のセリフ
+「今日はいい天気だね」
+「散歩に行こうかな」
+
+▼花子
+「私も行きたい」</textarea>
+    <div class="controls">
+      <button id="extract">抽出</button>
+      <span id="status" class="status"></span>
+    </div>
+  </details>
+
+  <details class="section" id="optionsSection" open>
+    <summary>抽出オプション</summary>
+
+    <details class="subsection" id="dictSection">
+      <summary>人称辞書の編集</summary>
+      <p class="hint">一人称・二人称・三人称っぽい表現として検出する単語です。×で削除、下の欄から追加できます。編集内容はこの後の抽出結果にすぐ反映されます。</p>
+      <div class="dict-columns">
+        <div class="dict-col p1">
+          <div class="dict-title">一人称</div>
+          <div class="dict-chips" data-cat="1"></div>
+          <div class="dict-add" data-cat="1">
+            <input type="text" placeholder="単語を追加">
+            <button class="small">追加</button>
+          </div>
+        </div>
+        <div class="dict-col p2">
+          <div class="dict-title">二人称</div>
+          <div class="dict-chips" data-cat="2"></div>
+          <div class="dict-add" data-cat="2">
+            <input type="text" placeholder="単語を追加">
+            <button class="small">追加</button>
+          </div>
+        </div>
+        <div class="dict-col p3">
+          <div class="dict-title">三人称</div>
+          <div class="dict-chips" data-cat="3"></div>
+          <div class="dict-add" data-cat="3">
+            <input type="text" placeholder="単語を追加">
+            <button class="small">追加</button>
+          </div>
+        </div>
+      </div>
+      <div class="dict-actions">
+        <button class="small" id="dictReset">既定の辞書に戻す</button>
+        <button class="small" id="dictClear">辞書をクリア</button>
+      </div>
+
+      <details class="dict-import">
+        <summary>テキストファイルからインポート</summary>
+        <div class="dict-import-body">
+          <p class="hint" style="margin:0;">既存の単語は残したまま、新しい単語だけが追加されます。</p>
+          <div class="dict-import-row">
+            <input type="file" id="dictImportFile" accept=".txt,text/plain">
+          </div>
+          <textarea id="dictImportText" placeholder="【一人称】
+私, 僕, 俺
+
+【二人称】
+あなた, 君
+
+【三人称】
+彼, 彼女"></textarea>
+          <div class="dict-import-row">
+            <button class="small" id="dictImportBtn">インポート</button>
+            <span id="dictImportStatus" class="status"></span>
+          </div>
+        </div>
+      </details>
+    </details>
+
+    <details class="subsection" id="aliasSection" style="display:none;">
+      <summary>同じ話者として扱う</summary>
+      <p class="hint">同じ名前を入力すると、同一話者としてまとめられます。空欄に戻すと元の表示に戻ります。</p>
+      <div id="aliasArea"></div>
+    </details>
+  </details>
+
+  <details class="section" id="resultSection" open>
+    <summary>抽出結果</summary>
+    <div id="unassignedSection" style="display:none;">
+      <h3 class="result-subhead">話者不明のセリフ</h3>
+      <div id="unassignedArea"></div>
+    </div>
+    <div id="filterSection" style="display:none;">
+      <div class="filter-bar">
+        <select id="speakerFilter"></select>
+      </div>
+    </div>
+    <div id="speakerSection" style="display:none;">
+      <div id="speakerArea"></div>
+    </div>
+  </details>
+</div>
+
+<script src="src/main.js"></script>
+</body>
+</html>
