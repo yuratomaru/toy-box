@@ -1,5 +1,22 @@
 const SPEAKER_CHAR = /^[\u3040-\u309F\u30A0-\u30FFー\u4E00-\u9FFF々]$/;
 
+// 行頭の話者タグとして認識する最大文字数（抽出オプションで変更。既定は1文字）
+const SPEAKER_LEN_DEFAULT = 1;
+const SPEAKER_LEN_MIN = 1;
+const SPEAKER_LEN_MAX = 10;
+const SPEAKER_CHAR_CLASS = '[\\u3040-\\u309F\\u30A0-\\u30FFー\\u4E00-\\u9FFF々]';
+let speakerMaxLen = SPEAKER_LEN_DEFAULT; // 直近の「抽出」で使われた値
+
+function clampSpeakerLen(v) {
+  const n = Math.floor(Number(v));
+  if (!Number.isFinite(n)) return SPEAKER_LEN_DEFAULT;
+  return Math.min(SPEAKER_LEN_MAX, Math.max(SPEAKER_LEN_MIN, n));
+}
+
+function buildSpeakerLineRe(maxLen) {
+  return new RegExp('^(' + SPEAKER_CHAR_CLASS + '{1,' + clampSpeakerLen(maxLen) + '})?「(.*)$', 's');
+}
+
 const PERSON_KEYWORDS = {
   '1': [
     '私', 'わたし', 'わたくし', 'あたし', 'あたくし', 'あたい', 'おいら',
@@ -111,7 +128,8 @@ function captureSnapshot() {
     manualAssign: { ...manualAssign },
     lineCategory: { ...lineCategory },
     lineConfirmedCats: serializeConfirmedCats(lineConfirmedCats),
-    speakerConfirmed: { ...speakerConfirmed }
+    speakerConfirmed: { ...speakerConfirmed },
+    speakerMaxLen
   };
 }
 
@@ -124,7 +142,10 @@ function applySnapshot(data) {
   lineCategory = { ...(data.lineCategory || {}) };
   lineConfirmedCats = deserializeConfirmedCats(data.lineConfirmedCats);
   speakerConfirmed = { ...(data.speakerConfirmed || {}) };
-  extracted = extractDialogues(data.text || '');
+  speakerMaxLen = clampSpeakerLen(data.speakerMaxLen === undefined ? SPEAKER_LEN_DEFAULT : data.speakerMaxLen);
+  document.getElementById('speakerMaxLen').value = speakerMaxLen;
+  document.getElementById('speakerMaxLenNote').textContent = '';
+  extracted = extractDialogues(data.text || '', speakerMaxLen);
   document.getElementById('status').textContent = `${extracted.length} 件のセリフを抽出しました。`;
 }
 
@@ -257,7 +278,8 @@ function cleanMarkerName(name) {
   return cleaned || name; // 「▼のセリフ」のように名前が残らない場合は元のまま
 }
 
-function extractDialogues(text) {
+function extractDialogues(text, maxLen = speakerMaxLen) {
+  const speakerLineRe = buildSpeakerLineRe(maxLen);
   const lines = text.split(/\r\n|\r|\n/);
   const results = [];
   let i = 0, autoId = 0;
@@ -272,7 +294,7 @@ function extractDialogues(text) {
       continue;
     }
 
-    const m = trimmed.match(/^([\u3040-\u309F\u30A0-\u30FFー\u4E00-\u9FFF々])?「(.*)$/s);
+    const m = trimmed.match(speakerLineRe);
     if (!m) { currentMarker = null; i++; continue; }
     const speaker = m[1] || null;
     const markerSpeaker = speaker === null ? currentMarker : null;
@@ -949,7 +971,10 @@ function renderAll() {
 
 function run() {
   const text = document.getElementById('input').value;
-  extracted = extractDialogues(text);
+  speakerMaxLen = clampSpeakerLen(document.getElementById('speakerMaxLen').value);
+  document.getElementById('speakerMaxLen').value = speakerMaxLen; // 範囲外・空欄は補正した値に戻す
+  document.getElementById('speakerMaxLenNote').textContent = '';
+  extracted = extractDialogues(text, speakerMaxLen);
   manualAssign = {};
   speakerOverride = {};
   speakerAlias = {};
@@ -962,6 +987,10 @@ function run() {
 }
 
 document.getElementById('extract').addEventListener('click', run);
+document.getElementById('speakerMaxLen').addEventListener('input', () => {
+  const changed = clampSpeakerLen(document.getElementById('speakerMaxLen').value) !== speakerMaxLen;
+  document.getElementById('speakerMaxLenNote').textContent = changed ? '「抽出」を押すと反映されます' : '';
+});
 document.getElementById('themeToggle').addEventListener('click', () => {
   setTheme(currentIsDark() ? 'light' : 'dark');
 });

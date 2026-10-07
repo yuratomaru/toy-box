@@ -203,6 +203,16 @@
   .howto-tag.yes { background: var(--p1-soft); color: var(--p1); }
   .howto-tag.no { background: var(--warn-soft); color: var(--warn); }
 
+  /* 抽出オプション：話者タグの最大文字数 */
+  .option-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 6px; }
+  .option-row label { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .option-row input[type=number] {
+    width: 72px; font-family: var(--mono); font-size: 14px; padding: 7px 10px;
+    border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+  }
+  .option-row input[type=number]:focus-visible { border-color: var(--focus); outline: none; }
+  .option-note { font-family: var(--mono); font-size: 12px; color: var(--warn); }
+
   /* 辞書の操作（クリア/リセット/インポート） */
   .dict-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .dict-import {
