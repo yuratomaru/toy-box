@@ -353,14 +353,18 @@
   .hint-col.p2 .hint-title { color: var(--p2); }
   .hint-col.p3 .hint-title { color: var(--p3); }
   .hint-example { font-size: 13px; font-family: var(--mono); margin-bottom: 8px; line-height: 1.7; cursor: pointer; border-radius: 8px; padding: 6px 8px; transition: background 0.1s ease; overflow-wrap: anywhere; }
-  .hint-col.p1 .hint-example:hover { background: rgba(6,104,76,0.12); }
-  .hint-col.p2 .hint-example:hover { background: rgba(138,98,0,0.12); }
-  .hint-col.p3 .hint-example:hover { background: rgba(156,65,120,0.12); }
+  .hint-col.p1 .hint-example:hover { background: color-mix(in srgb, var(--p1-dot) 18%, transparent); }
+  .hint-col.p2 .hint-example:hover { background: color-mix(in srgb, var(--p2-dot) 18%, transparent); }
+  .hint-col.p3 .hint-example:hover { background: color-mix(in srgb, var(--p3-dot) 18%, transparent); }
   .hint-example:last-child { margin-bottom: 0; }
-  .hint-example strong { background: rgba(0,0,0,0.12); padding: 0 2px; border-radius: 4px; }
-  .hint-col.p1 .hint-example.confirmed { background: rgba(6,104,76,0.14); box-shadow: inset 3px 0 0 var(--p1-dot); }
-  .hint-col.p2 .hint-example.confirmed { background: rgba(138,98,0,0.14); box-shadow: inset 3px 0 0 var(--p2-dot); }
-  .hint-col.p3 .hint-example.confirmed { background: rgba(156,65,120,0.14); box-shadow: inset 3px 0 0 var(--p3-dot); }
+  /* 人称ワード強調：ライト/ダークどちらでも読めるよう、文字色は本文色のまま、人称色の下線＋薄い背景で示す */
+  .hint-example strong { color: var(--ink); font-weight: 700; padding: 0 3px; border-radius: 4px; background: rgba(128,128,128,0.2); }
+  .hint-col.p1 .hint-example strong { background: color-mix(in srgb, var(--p1-dot) 32%, transparent); box-shadow: inset 0 -2px 0 var(--p1-dot); }
+  .hint-col.p2 .hint-example strong { background: color-mix(in srgb, var(--p2-dot) 32%, transparent); box-shadow: inset 0 -2px 0 var(--p2-dot); }
+  .hint-col.p3 .hint-example strong { background: color-mix(in srgb, var(--p3-dot) 32%, transparent); box-shadow: inset 0 -2px 0 var(--p3-dot); }
+  .hint-col.p1 .hint-example.confirmed { background: color-mix(in srgb, var(--p1-dot) 22%, transparent); box-shadow: inset 3px 0 0 var(--p1-dot); }
+  .hint-col.p2 .hint-example.confirmed { background: color-mix(in srgb, var(--p2-dot) 22%, transparent); box-shadow: inset 3px 0 0 var(--p2-dot); }
+  .hint-col.p3 .hint-example.confirmed { background: color-mix(in srgb, var(--p3-dot) 22%, transparent); box-shadow: inset 3px 0 0 var(--p3-dot); }
   .confirm-check { font-family: var(--ui); font-size: 11px; font-weight: 700; }
   .hint-col.p1 .confirm-check { color: var(--p1); }
   .hint-col.p2 .confirm-check { color: var(--p2); }
