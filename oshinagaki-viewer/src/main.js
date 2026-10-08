@@ -6,7 +6,7 @@
   const COL_LABEL = { space: '配置', circle: 'サークル名', title: '頒布物', cat: '分類', price: '頒布価格', note: '備考' };
   const COL_WIDTH = { space: 96, circle: 128, title: 168, cat: 104, price: 92, note: 152 };
   const MIN_ROWS = 13;
-  // 💡 巨大データによるフリーズ防止のための上限（実用上十分な余裕を持たせる）
+  // 💡 巨大データによるフリーズ防止のための上限(実用上十分な余裕を持たせる)
   const MAX_ROWS = 1000;
   const MAX_COLS = 12; // 基本6列だが多少の余裕を持たせる
   const MAX_CELL_CHARS = 1000;
@@ -72,7 +72,7 @@
     return rows.length ? rows : null;
   }
 
-  // 💡 保存データの ov（購入状態の上書き）を検証・正規化する
+  // 💡 保存データの ov(購入状態の上書き)を検証・正規化する
   function sanitizeOv(ov) {
     if (!isPlainObject(ov)) return {};
     const out = {};
@@ -115,7 +115,7 @@
     toastTimer = setTimeout(() => { el.classList.remove('show'); }, duration);
   }
 
-  // 💡 ページ内の確認ダイアログ。window.confirm は埋め込み環境（iframe等）でブロックされ
+  // 💡 ページ内の確認ダイアログ。window.confirm は埋め込み環境(iframe等)でブロックされ
   //    常に「キャンセル」扱いになることがあるため、自前で用意する。Promise<boolean> を返す。
   function confirmDialog(message, { okLabel = 'OK', cancelLabel = 'キャンセル', danger = false } = {}) {
     return new Promise((resolve) => {
@@ -160,7 +160,7 @@
     });
   }
 
-  // 💡 localStorage への保存に失敗した場合（容量超過など）、画面を壊さず控えめに通知する
+  // 💡 localStorage への保存に失敗した場合(容量超過など)、画面を壊さず控えめに通知する
   let saveFailedNotified = false;
   function notifySaveFailure() {
     if (saveFailedNotified) return;
@@ -186,7 +186,7 @@
 
   /* --------------------------
   // ↩️ 元に戻す／やり直す
-  //    対象は「データ」の変更（グリッドの内容・購入チェック状態）のみ。
+  //    対象は「データ」の変更(グリッドの内容・購入チェック状態)のみ。
   //    表示形式・並び替え設定・テーマなどの見た目の設定は対象外。
   ---------------------------- */
   const HISTORY_LIMIT = 50;
@@ -237,8 +237,8 @@
   $('#btnUndo').addEventListener('click', undo);
   $('#btnRedo').addEventListener('click', redo);
   // 💡 Ctrl/Cmd+Z で元に戻す、Ctrl/Cmd+Shift+Z または Ctrl+Y でやり直す
-  //    （セル編集中でもスプレッドシート的な「操作単位」の取り消しを優先し、
-  //    ブラウザ標準のcontenteditable内undoより常にこちらを使う）
+  //    (セル編集中でもスプレッドシート的な「操作単位」の取り消しを優先し、
+  //    ブラウザ標準のcontenteditable内undoより常にこちらを使う)
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (!mod) return;
@@ -295,8 +295,8 @@
     render();
   }
 
-  // 💡 セル編集中でも使えるキーボードショートカット（プレビュー側のボタン操作を補完）
-  //    Alt+↑ / Alt+↓ : 現在の行を上下へ移動　/　Alt+Delete（またはAlt+Backspace）: 現在の行を削除
+  // 💡 セル編集中でも使えるキーボードショートカット(プレビュー側のボタン操作を補完)
+  //    Alt+↑ / Alt+↓ : 現在の行を上下へ移動　/　Alt+Delete(またはAlt+Backspace): 現在の行を削除
   gridBodyEl.addEventListener('keydown', (e) => {
     if (!e.altKey) return;
     const cellTd = e.target.closest('td[data-r]');
@@ -370,7 +370,7 @@
     }
 
     // 💡 矢印キーでのセル移動: グリッド末尾からさらに進もうとした場合は自動で行・列を拡張する
-    //    （テキストカーソルの左右移動と衝突しないよう、キャレットが端にある時だけ移動として扱う）
+    //    (テキストカーソルの左右移動と衝突しないよう、キャレットが端にある時だけ移動として扱う)
     const atStart = () => {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return true;
@@ -424,7 +424,7 @@
     if (text == null) return;
     e.preventDefault();
     if (!/[\t\r\n]/.test(text)) {
-      // 💡 単一セルへの貼り付け（単なる文字入力と同じ扱い。データセット置き換えではない）
+      // 💡 単一セルへの貼り付け(単なる文字入力と同じ扱い。データセット置き換えではない)
       // 💡 すでにこのセルへのfocusin時点でpushHistory済みのため、ここでは積まない
       const val = text.length > MAX_CELL_CHARS ? text.slice(0, MAX_CELL_CHARS) : text;
       // 💡 deprecated な execCommand('insertText') を Selection/Range API で置き換え
@@ -436,7 +436,7 @@
         range.collapse(false); // カーソルを挿入テキストの末尾に移動
         sel.removeAllRanges();
         sel.addRange(range);
-        // state への反映（input イベントが発火しないため手動で同期）
+        // state への反映(input イベントが発火しないため手動で同期)
         const r = Number(td.dataset.r), c = Number(td.dataset.c);
         state.grid[r][c] = td.textContent;
         save();
@@ -444,7 +444,7 @@
       return;
     }
 
-    // 💡 スプレッドシート形式（タブ/改行を含む）の貼り付けは、
+    // 💡 スプレッドシート形式(タブ/改行を含む)の貼り付けは、
     //    「クリック位置を左上として、その範囲のセルだけを上書きする」操作として扱う。
     //    以前は貼り付け範囲の外側にあった行・列まで丸ごと切り詰めてしまい、
     //    「元より小さいデータを貼るとその他の列が消える」「右側に不要な空列ができる」
@@ -454,7 +454,7 @@
     while (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
     let rows = lines.map(line => line.split('\t'));
 
-    // 💡 コピー元（スプレッドシート）の選択範囲に含まれていた、末尾の空白列を除去する。
+    // 💡 コピー元(スプレッドシート)の選択範囲に含まれていた、末尾の空白列を除去する。
     //    これをしないと、選択範囲の右端に空セルが混ざっていただけで貼り付け後の
     //    グリッドが余分に横へ広がってしまう。
     let pasteCols = 0;
@@ -462,7 +462,7 @@
     while (pasteCols > 1 && rows.every(cells => (cells[pasteCols - 1] ?? '') === '')) pasteCols--;
     rows = rows.map(cells => cells.slice(0, pasteCols));
 
-    // 💡 既存のグリッドサイズと貼り付け範囲のうち、大きい方に合わせる（縮小はしない）
+    // 💡 既存のグリッドサイズと貼り付け範囲のうち、大きい方に合わせる(縮小はしない)
     const newRowCount = Math.max(state.grid.length, r0 + rows.length);
     const newColCount = Math.max(state.grid[0] ? state.grid[0].length : COLS.length, c0 + pasteCols);
 
@@ -479,13 +479,13 @@
     for (const cells of rows) {
       for (const val of cells) {
         if (val.length > MAX_CELL_CHARS) {
-          alert(`1つのセルに入力できる文字数の上限（${MAX_CELL_CHARS}文字）を超えています。`);
+          alert(`1つのセルに入力できる文字数の上限(${MAX_CELL_CHARS}文字)を超えています。`);
           return;
         }
       }
     }
 
-    // 💡 グリッドを必要な分だけ拡張（既存の行・列・値はそのまま保持する）
+    // 💡 グリッドを必要な分だけ拡張(既存の行・列・値はそのまま保持する)
     ensureSize(newRowCount, newColCount);
     rows.forEach((cells, dr) => {
       cells.forEach((val, dc) => {
@@ -498,7 +498,7 @@
     focusCell(r0, c0); // 💡 focusCell内でrenderGrid()も呼ばれ、編集グリッド側の表示も新しいサイズに更新される
   });
 
-  // 💡 グリッドの内容をTSV形式（タブ区切り・改行区切り）でクリップボードにコピーする。
+  // 💡 グリッドの内容をTSV形式(タブ区切り・改行区切り)でクリップボードにコピーする。
   //    この形式ならGoogleスプレッドシートやExcelにそのまま貼り付けられる。
   async function copyGridToClipboard() {
     const tsv = state.grid.map(row => row.join('\t')).join('\n');
@@ -506,7 +506,7 @@
       await navigator.clipboard.writeText(tsv);
       showToast('表の内容をコピーしました。');
     } catch (e) {
-      // 💡 Clipboard APIが使えない環境（非HTTPS・権限拒否など）向けのフォールバック
+      // 💡 Clipboard APIが使えない環境(非HTTPS・権限拒否など)向けのフォールバック
       try {
         const ta = document.createElement('textarea');
         ta.value = tsv;
@@ -536,7 +536,7 @@
   }
   $('#btnGridSample').addEventListener('click', loadSample);
   $('#btnGridClear').addEventListener('click', async () => {
-    const ok = await confirmDialog('入力したデータをすべて消去します。\nよろしいですか？（「元に戻す」で復元できます）', { okLabel: '消去する', danger: true });
+    const ok = await confirmDialog('入力したデータをすべて消去します。\nよろしいですか？(「元に戻す」で復元できます)', { okLabel: '消去する', danger: true });
     if (!ok) return;
     pushHistory();
     state.grid = emptyGrid(MIN_ROWS);
@@ -589,7 +589,7 @@
     const s = (raw || '').normalize('NFKC').trim();
     if (!s) return { day: '', num: '' };
 
-    // 日程表記やホール表記（組み合わせ含む）をまとめて前方からマッチさせる
+    // 日程表記やホール表記(組み合わせ含む)をまとめて前方からマッチさせる
     const pattern = /^((?:(?:\d+日目|[月火水木金土日]曜日?|day\s?\d+|両日|全日|[東山西北南]\d*(?:ホール)?|hall\s?\d*)\s*[-‐‑–—ー・:\/\s]*)+)\s*(.+)$/i;
     const m = s.match(pattern);
 
@@ -615,7 +615,7 @@
       const price = parsePrice(priceRaw);
       const it = {
         idx: i,
-        // 💡 購入済は入力データに含めず、常に未購入から開始（プレビューのチェックで管理）
+        // 💡 購入済は入力データに含めず、常に未購入から開始(プレビューのチェックで管理)
         bought: false,
         space, day, num,
         circle: get(r, 'circle'),
@@ -648,7 +648,7 @@
   }
 
   // 💡 同一サークル内での頒布物の並び順優先度
-  //    0: 「セット」を含む → 1: 分類が完全に「新刊」のみ → 2: 「新刊」を含むが前後に文字がある（例：準新刊）→ 3: それ以外
+  //    0: 「セット」を含む → 1: 分類が完全に「新刊」のみ → 2: 「新刊」を含むが前後に文字がある(例：準新刊)→ 3: それ以外
   function catPriority(it) {
     const c = (it.cat || '').normalize('NFKC').trim();
     if (!c) return 3;
@@ -665,7 +665,7 @@
       if (key && cur && cur.key === key) cur.items.push(it);
       else { cur = { key, day: it.day, num: it.num, circle: it.circle, items: [it] }; groups.push(cur); }
     });
-    // 💡 カテゴリ順は「並び替えを反映」で選んだ時だけ適用するオプション（既定では入力順のまま）
+    // 💡 カテゴリ順は「並び替えを反映」で選んだ時だけ適用するオプション(既定では入力順のまま)
     if (catSort) {
       groups.forEach(g => { if (g.items.length > 1) g.items.sort((a, b) => catPriority(a) - catPriority(b)); });
     }
@@ -676,18 +676,18 @@
   // escHTML (グリッド側) と esc (描画側) を統一
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const yen = (n) => '¥' + n.toLocaleString('ja-JP');
-  const nameOf = (it) => it.title || it.circle || '（名称未入力）';
+  const nameOf = (it) => it.title || it.circle || '(名称未入力)';
   const effOn = (it) => (Object.prototype.hasOwnProperty.call(state.ov, it.idx) ? state.ov[it.idx] : it.bought);
 
-  // カテゴリタグの色分け：5色の固定パレット（セット・新刊・既刊・グッズ・それ以外）
-  // 「セット」は「新刊」より優先して判定する（例：「新刊セット」→セット扱い）
+  // カテゴリタグの色分け：5色の固定パレット(セット・新刊・既刊・グッズ・それ以外)
+  // 「セット」は「新刊」より優先して判定する(例：「新刊セット」→セット扱い)
   const TAG_KEYWORD_MAP = [
-    { cls: 't7', patterns: ['セット'] },                   // 赤紫/マゼンタ：「セット」を含む（新刊より優先）
+    { cls: 't7', patterns: ['セット'] },                   // 赤紫/マゼンタ：「セット」を含む(新刊より優先)
     { cls: 't1', patterns: ['新刊'] },                     // 朱赤：「新刊」を含む
     { cls: 't2', patterns: ['既刊'] },                     // 青：「既刊」を含む
     { cls: 't3', patterns: ['グッズ', 'goods', 'グず'] },  // 緑：「グッズ」を含む
   ];
-  const TAG_OTHER = 't8'; // 上記に一致しない分類はすべてこの1色（橙）に統一
+  const TAG_OTHER = 't8'; // 上記に一致しない分類はすべてこの1色(橙)に統一
 
   function makeTagMapper() {
     return (cat) => {
@@ -716,7 +716,7 @@
     return `<button type="button" class="cbx" role="checkbox" aria-checked="${on}" aria-label="購入済み：${esc(nameOf(it))}" data-i="${it.idx}">${on ? CHECK_SVG : '<span aria-hidden="true">未</span>'}</button>`;
   }
 
-  // 💡 1項目分の「上へ/下へ移動・削除」ボタン。プレビュー（テーブル／カード）の各項目に表示する。
+  // 💡 1項目分の「上へ/下へ移動・削除」ボタン。プレビュー(テーブル／カード)の各項目に表示する。
   function itemActionsHTML(it) {
     const name = esc(nameOf(it));
     return `<span class="row-actions">
@@ -770,8 +770,8 @@
       : '';
     // 同一サークルが連続する場合、スペース／サークル名セルはグループ先頭行にのみ rowspan で出力し、
     // それ以外の行では省略して上下のセルが結合しているように見せる。
-    // 💡 スペース・サークル名の購入済み表示（薄字）は先頭行の購入状態ではなく、
-    //    グループ内の頒布物を1つでも購入したかどうか（spaceInfo.groupOn）で判定する。
+    // 💡 スペース・サークル名の購入済み表示(薄字)は先頭行の購入状態ではなく、
+    //    グループ内の頒布物を1つでも購入したかどうか(spaceInfo.groupOn)で判定する。
     const spanAttr = spaceInfo && spaceInfo.rowspan > 1 ? ` rowspan="${spaceInfo.rowspan}"` : '';
     const groupDoneCls = spaceInfo && spaceInfo.groupOn ? ' grp-purchased' : '';
     const spaceTd = spaceInfo ? `<td class="c-space dim${groupDoneCls}"${spanAttr}>${spaceLiteHTML(it, 'sv-tbl')}</td>` : '';
@@ -795,14 +795,14 @@
     const rows = groups.map((g, gi) => {
       const n = g.items.length;
       const isLastGroup = gi === groups.length - 1;
-      // 💡 グループ内のいずれかの頒布物が購入済みなら true（スペース・サークル名の表示に使う）
+      // 💡 グループ内のいずれかの頒布物が購入済みなら true(スペース・サークル名の表示に使う)
       const groupOn = mode === 'private' && g.items.some(it => effOn(it));
       // grp-last = サークル境目 = 最終グループ以外のグループ最終行
       return g.items.map((it, i) => rowHTML(it, mode, tm, i === 0 ? { rowspan: n, groupOn } : null, i < n - 1, !isLastGroup && i === n - 1)).join('');
     }).join('');
     const chkTh = mode === 'private' ? '<th class="c-chk" scope="col">購入済</th>' : '';
     const actTh = mode === 'private' ? '<th class="c-act" scope="col">操作</th>' : '';
-    // 💡 ユーザーがドラッグで調整した幅（state.circleColW）があれば、ブレークポイントに関わらず優先する
+    // 💡 ユーザーがドラッグで調整した幅(state.circleColW)があれば、ブレークポイントに関わらず優先する
     const circleWStyle = state.circleColW ? ` style="--circle-w:${state.circleColW}px"` : '';
     return `<div class="tbl-wrap"><table class="tbl"${circleWStyle}>
       <thead><tr>
@@ -855,7 +855,7 @@
       return;
     }
     const tm = makeTagMapper();
-    const ordered = items; // 表示は常に入力順（並び替えは「並び替えを反映」で入力データ自体を並べ替える）
+    const ordered = items; // 表示は常に入力順(並び替えは「並び替えを反映」で入力データ自体を並べ替える)
     const list = state.view === 'card'
       ? `<ul class="cards">${groupItems(ordered).map(g => groupCardHTML(g, state.mode, tm)).join('')}</ul>`
       : tableHTML(ordered, state.mode, tm);
@@ -868,7 +868,7 @@
     if (state.theme) root.setAttribute('data-theme', state.theme);
     else root.removeAttribute('data-theme');
     const dark = effTheme() === 'dark';
-    // 💡 撮影モード用ドック内の文字付きボタン（ヘッダーが非表示の間の代替操作）
+    // 💡 撮影モード用ドック内の文字付きボタン(ヘッダーが非表示の間の代替操作)
     document.querySelectorAll('.js-theme').forEach(b => {
       b.innerHTML = (dark ? SUN : MOON) + (dark ? 'ライトにする' : 'ダークにする');
       b.setAttribute('aria-pressed', String(dark));
@@ -890,7 +890,7 @@
   ttl.addEventListener('input', () => { state.title = ttl.value; save(); render(); });
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; syncControls(); save(); render(); }));
   // 💡 「並び替えを反映」: 選んだ条件で入力データの行順そのものを一度だけ並べ替える。
-  //    反映後は通常のデータと同じ扱いなので、その後の移動・削除は自由（元に戻すも可能）。
+  //    反映後は通常のデータと同じ扱いなので、その後の移動・削除は自由(元に戻すも可能)。
   function applySortToData() {
     const bySpace = optSortSpace.checked, byCat = optCatSort.checked;
     if (!bySpace && !byCat) { showToast('並び替えの条件を選んでください。'); return; }
@@ -901,7 +901,7 @@
     const ordered = bySpace ? items.slice().sort(spaceCompare) : items;
     const newItems = groupItems(ordered, byCat).flatMap(g => g.items);
 
-    // 項目として認識されない行（空行など）は元の順序のまま末尾に残す
+    // 項目として認識されない行(空行など)は元の順序のまま末尾に残す
     const used = new Set(newItems.map(it => it.idx));
     const dataRows = state.grid.slice(offset);
     const restIdx = [];
@@ -917,7 +917,7 @@
     save();
     renderGrid();
     render();
-    showToast('並び替えを反映しました。（「元に戻す」で取り消せます）', 3200);
+    showToast('並び替えを反映しました。(「元に戻す」で取り消せます)', 3200);
   }
   $('#btnApplySort').addEventListener('click', applySortToData);
   document.querySelectorAll('.js-theme, .js-theme-icon').forEach(b => b.addEventListener('click', () => { state.theme = effTheme() === 'dark' ? 'light' : 'dark'; applyTheme(); save(); }));
@@ -1003,7 +1003,7 @@
   }
   function enterCapture() {
     root.classList.add('capture');
-    // 💡 撮影モード中は自動で公開用表示に切り替える（購入チェックを隠す）
+    // 💡 撮影モード中は自動で公開用表示に切り替える(購入チェックを隠す)
     state.mode = 'public';
     render();
     window.scrollTo(0, 0);
@@ -1024,7 +1024,7 @@
   $('#reveal').addEventListener('click', showDock);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && root.classList.contains('capture')) exitCapture(); });
 
-  /* ---------- 画像として保存（プレビューゾーン(#sheet)のみを書き出す） ---------- */
+  /* ---------- 画像として保存(プレビューゾーン(#sheet)のみを書き出す) ---------- */
   const btnSaveImage = $('#btnSaveImage');
   const saveImageLabel = btnSaveImage.innerHTML;
   function safeFileName(name) {
@@ -1036,7 +1036,7 @@
   /* 💡 Canvas寸法上限のチェック
      ブラウザ・OS・端末ごとにCanvasの最大幅／高さ／面積の上限は異なり、決め打ちできない。
      そこで「実際にこれから作ろうとしているのと同じ幅・高さのCanvasを試作し、
-     四隅にピクセルを描いて正しく読み戻せるか」をその場で検証する（＝実機での実測に近い）。*/
+     四隅にピクセルを描いて正しく読み戻せるか」をその場で検証する(＝実機での実測に近い)。*/
   function canvasSupportsSize(w, h) {
     if (!(w > 0) || !(h > 0)) return false;
     let c;
@@ -1054,7 +1054,7 @@
         return d[0] === 255 && d[1] === 0 && d[2] === 255 && d[3] === 255;
       });
     } catch (e) {
-      // 💡 一部ブラウザ（Safari系など）では上限超過時にCanvas生成やgetImageData自体が例外になる
+      // 💡 一部ブラウザ(Safari系など)では上限超過時にCanvas生成やgetImageData自体が例外になる
       return false;
     } finally {
       // 💡 巨大なバッキングストアを速やかに解放するヒントとして0にしておく
@@ -1063,7 +1063,7 @@
   }
 
   // 💡 希望scaleから0.25刻みで下げながら、実際にこの端末で描画・読み戻せる最大のscaleを探す。
-  //    等倍(1)でも不可なら null（保存不可）を返す。
+  //    等倍(1)でも不可なら null(保存不可)を返す。
   function findSafeScale(contentW, contentH, desiredScale) {
     const scales = [];
     for (let s = desiredScale; s > 1; s -= 0.25) scales.push(Math.round(s * 100) / 100);
@@ -1082,7 +1082,7 @@
       return;
     }
 
-    // 💡 実際に書き出す予定の寸法（#sheetの表示サイズ×希望scale）を先に見積もり、
+    // 💡 実際に書き出す予定の寸法(#sheetの表示サイズ×希望scale)を先に見積もり、
     //    この端末のCanvas上限内かどうかを本番実行前に確認する。
     //    ここでWebフォントの読み込み完了を先に待つのが重要：後回しにすると、
     //    測定後にフォントが差し替わって行の高さが変化し、実際にhtml2canvasが
@@ -1104,23 +1104,23 @@
         return;
       }
       const proceed = await confirmDialog(
-        `画像のサイズが大きすぎるため、この端末の上限に合わせて画質を下げます（${fmtScale(desiredScale)}倍 → ${fmtScale(safeScale)}倍）。\nこのまま保存を続けますか？`,
+        `画像のサイズが大きすぎるため、この端末の上限に合わせて画質を下げます(${fmtScale(desiredScale)}倍 → ${fmtScale(safeScale)}倍)。\nこのまま保存を続けますか？`,
         { okLabel: '続ける' }
       );
       if (!proceed) return;
       scale = safeScale;
     }
 
-    // 💡 保存中は他の操作をブロックし、ボタンにも進行中であることを示す（二重クリック対策）
+    // 💡 保存中は他の操作をブロックし、ボタンにも進行中であることを示す(二重クリック対策)
     btnSaveImage.disabled = true;
     $('#btnExit').disabled = true;
     btnSaveImage.innerHTML = '画像を保存中…';
-    // 💡 ドックが写り込まないよう、生成中は一旦隠す（プレビューはそのまま）
+    // 💡 ドックが写り込まないよう、生成中は一旦隠す(プレビューはそのまま)
     dock.style.visibility = 'hidden';
     try {
       // 💡 #sheet の“現在の見た目”をそのまま書き出す：
-      //    列幅調整（サークル名/頒布物の境目のドラッグ）やテーマ、
-      //    表示モード（テーブル/カード）・並び順など、ユーザーが
+      //    列幅調整(サークル名/頒布物の境目のドラッグ)やテーマ、
+      //    表示モード(テーブル/カード)・並び順など、ユーザーが
       //    その時点で選んでいる状態がそのまま反映される。
       // 💡 ページがスクロールされていても#sheet全体が途中で切れないよう、
       //    現在のスクロール位置を打ち消すオプションを指定する
@@ -1146,7 +1146,7 @@
       const tolH = Math.max(60, expectedH * 0.05);
       if (Math.abs(canvas.width - expectedW) > tolW || Math.abs(canvas.height - expectedH) > tolH) {
         console.error('canvas size mismatch', { expectedW, expectedH, actualW: canvas.width, actualH: canvas.height, tolW, tolH });
-        alert('画像の生成結果が想定サイズと大きく異なったため、保存を中止しました（お使いの端末の制限の可能性があります）。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
+        alert('画像の生成結果が想定サイズと大きく異なったため、保存を中止しました(お使いの端末の制限の可能性があります)。行数を減らすか、表示形式を「テーブル」に切り替えるなどしてお試しください。');
         return;
       }
 

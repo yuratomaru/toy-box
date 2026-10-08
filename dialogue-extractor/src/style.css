@@ -175,7 +175,7 @@
   }
   #filterSection { margin-bottom: 14px; }
 
-  /* 使い方（折りたたみの使用例カード） */
+  /* 使い方(折りたたみの使用例カード) */
   .howto {
     margin-top: 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--sheet); padding: 14px 16px;
   }
@@ -213,7 +213,7 @@
   .option-row input[type=number]:focus-visible { border-color: var(--focus); outline: none; }
   .option-note { font-family: var(--mono); font-size: 12px; color: var(--warn); }
 
-  /* 辞書の操作（クリア/リセット/インポート） */
+  /* 辞書の操作(クリア/リセット/インポート) */
   .dict-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .dict-import {
     margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 14px;

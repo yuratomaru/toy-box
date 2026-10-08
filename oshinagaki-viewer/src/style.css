@@ -30,12 +30,12 @@
   --done-bg: #00694D;
   --done-fg: #FFFFFF;
 
-  /* カテゴリタグ：5色の固定パレット（Okabe-Ito CUDカラーをベースに虹のように配色） */
-  /* t7: セット → 赤紫/マゼンタ（新刊より優先判定） */
+  /* カテゴリタグ：5色の固定パレット(Okabe-Ito CUDカラーをベースに虹のように配色) */
+  /* t7: セット → 赤紫/マゼンタ(新刊より優先判定) */
   --t7-bg: #F5E1EC; --t7-fg: #6A2A4B; --t7-dot: #CC79A7;
   /* t1: 新刊 → 朱赤/バーミリオン */
   --t1-bg: #FBE3D0; --t1-fg: #8A3B00; --t1-dot: #D55E00;
-  /* t8: その他 → 橙（新刊の朱赤・セットの赤紫と混同しない暖色） */
+  /* t8: その他 → 橙(新刊の朱赤・セットの赤紫と混同しない暖色) */
   --t8-bg: #FCEBC7; --t8-fg: #6E4A00; --t8-dot: #E69F00;
   /* t3: グッズ → 緑 */
   --t3-bg: #D3EEE4; --t3-fg: #00503A; --t3-dot: #009E73;
@@ -43,7 +43,7 @@
   --t2-bg: #D9EAF7; --t2-fg: #004A75; --t2-dot: #0072B2;
 }
 
-/* ダークテーマの変数定義（メディアクエリ・data-theme両方から参照） */
+/* ダークテーマの変数定義(メディアクエリ・data-theme両方から参照) */
 :root {
   --dark-bg: #0B1020; --dark-sheet: #121A30; --dark-surface: #1A2440;
   --dark-surface-done: #151D36; --dark-head-bg: #16203A;
@@ -60,7 +60,7 @@
   /* t2: 既刊 → 青 */            --dark-t2-bg: #143A57; --dark-t2-fg: #A9DBF7; --dark-t2-dot: #56B4E9;
 }
 
-/* OSのダークモード設定に追従（手動でテーマを固定していない場合） */
+/* OSのダークモード設定に追従(手動でテーマを固定していない場合) */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
@@ -138,7 +138,7 @@ h1, h2, h3, p { margin: 0; }
 }
 .tool-header-text { min-width: 0; flex: 1 1 auto; }
 /* 💡 テーマ切り替え：ヘッダー右側に置く、アイコンのみの単一トグルボタン
-   （文字ラベルは表示せず、aria-label/titleで現在と逆の状態を案内する） */
+   (文字ラベルは表示せず、aria-label/titleで現在と逆の状態を案内する) */
 .theme-toggle-header {
   flex: none;
   width: 44px;
@@ -250,7 +250,7 @@ h1, h2, h3, p { margin: 0; }
   font-size: 12px; font-weight: 700;
   width: 32px; min-width: 32px; text-align: center;
 }
-/* 💡 行の並べ替え・削除ボタンは、触りやすいプレビュー側（テーブル/カード）に配置する。
+/* 💡 行の並べ替え・削除ボタンは、触りやすいプレビュー側(テーブル/カード)に配置する。
    下の .row-act* / .item-actions は、入力グリッドではなくプレビューのために使う。 */
 .row-actions {
   display: flex;
@@ -294,7 +294,7 @@ h1, h2, h3, p { margin: 0; }
 .grid td.cell:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; background: var(--surface); }
 
 /* .bar は表示・並び順のトグル行のみを縦積みで並べる
-   （撮影モードボタンはプレビュー下の.capture-launchへ分離した） */
+   (撮影モードボタンはプレビュー下の.capture-launchへ分離した) */
 .bar { display: flex; flex-direction: column; gap: 16px; }
 .bar-ctls { display: flex; flex-direction: column; gap: 16px; }
 .ctl { display: flex; align-items: center; gap: 16px; }
@@ -323,7 +323,7 @@ h1, h2, h3, p { margin: 0; }
 
 @media (min-width: 600px) {
   /* タブレット以上: トグル行を横並びに。折り返しが必要な場合は
-     ボタン単位ではなく行(.ctl)単位でラップさせる（文字の途中では割れない） */
+     ボタン単位ではなく行(.ctl)単位でラップさせる(文字の途中では割れない) */
   .bar-ctls { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
   .ctl { flex: none; }
   .ctl-l { width: auto; }
@@ -345,7 +345,7 @@ h1, h2, h3, p { margin: 0; }
 @media (min-width: 860px) { .sheet { padding: 32px 24px 40px; } }
 .sheet-title { font-size: 28px; line-height: 1.4; font-weight: 900; margin-bottom: 16px; overflow-wrap: anywhere; }
 
-/* ============ 撮影モード開始ボタン（プレビューの下） ============ */
+/* ============ 撮影モード開始ボタン(プレビューの下) ============ */
 .capture-launch { display: flex; justify-content: center; }
 .capture-launch .btn { width: 100%; }
 @media (min-width: 600px) { .capture-launch .btn { width: auto; min-width: 240px; } }
@@ -458,8 +458,8 @@ h1, h2, h3, p { margin: 0; }
 .cbx[aria-checked="true"] { background: var(--done-bg); border-color: var(--done-bg); color: var(--done-fg); }
 
 .is-done .dim { opacity: .5; }
-/* 💡 スペース・サークル名セル（rowspan結合）は、グループ内のいずれかの頒布物が
-   購入済みなら薄く表示する（先頭行だけの購入状態に依存しない） */
+/* 💡 スペース・サークル名セル(rowspan結合)は、グループ内のいずれかの頒布物が
+   購入済みなら薄く表示する(先頭行だけの購入状態に依存しない) */
 .tbl td.c-space.grp-purchased,
 .tbl td.c-circle.grp-purchased { opacity: .5; background: var(--surface-done); }
 
@@ -534,7 +534,7 @@ h1, h2, h3, p { margin: 0; }
   vertical-align: middle;
   position: relative; /* リサイズハンドルの基準位置 */
 }
-/* 💡 サークル名/頒布物の境目のドラッグハンドル（ヘッダーセルの右端に配置） */
+/* 💡 サークル名/頒布物の境目のドラッグハンドル(ヘッダーセルの右端に配置) */
 .tbl th.c-circle { overflow: visible; }
 .col-resizer {
   position: absolute;
@@ -558,7 +558,7 @@ h1, h2, h3, p { margin: 0; }
 .col-resizer.resizing::after { background: var(--accent); }
 .col-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .tbl .c-price { width: 84px; text-align: right; }
-/* 💡 行の並べ替え・削除ボタン列（私用モードのみ表示） */
+/* 💡 行の並べ替え・削除ボタン列(私用モードのみ表示) */
 .tbl .c-act { width: 72px; vertical-align: middle; }
 .tbl .c-act .row-actions { margin-left: auto; width: fit-content; }
 .tbl .c-act .row-act[disabled] { opacity: .2; }
@@ -577,7 +577,7 @@ h1, h2, h3, p { margin: 0; }
 .tbl tr.grp-mid td:not(.c-space):not(.c-circle) { border-bottom: 1px dashed var(--line); }
 .tbl tr.grp-mid td.c-space,
 .tbl tr.grp-mid td.c-circle { border-bottom: 2px solid var(--line); }
-/* サークル境目（各グループの最終行）：実線*/
+/* サークル境目(各グループの最終行)：実線*/
 .tbl tr.grp-last td { border-bottom: 2px solid var(--line); }
 @media (min-width: 480px) {
   .tbl .c-chk { width: 64px; }
@@ -671,7 +671,7 @@ html.capture .reveal { display: block; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-/* ============ 確認ダイアログ（window.confirmの代わり） ============ */
+/* ============ 確認ダイアログ(window.confirmの代わり) ============ */
 .confirm-overlay {
   position: fixed;
   inset: 0;
