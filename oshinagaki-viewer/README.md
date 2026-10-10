@@ -2,6 +2,8 @@
 
 同人イベントの頒布物リストを、スプレッドシートから貼り付けてプレビューできるシングルページアプリ。
 
+**公開URL**: https://yuratomaru.github.io/toy-box/oshinagaki-viewer/
+
 ## 機能
 ----
 

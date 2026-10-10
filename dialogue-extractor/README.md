@@ -2,6 +2,9 @@
 
 小説やシナリオテキストなどの文章から、登場人物のセリフや話者を抽出・分類できるシングルページアプリ。
 
+**公開URL**: https://yuratomaru.github.io/toy-box/dialogue-extractor/
+
+
 ## 想定利用シーン
 ----
 

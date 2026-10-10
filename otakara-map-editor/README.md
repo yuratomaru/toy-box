@@ -1,6 +1,9 @@
 # 即売会マップエディター（otakara-map-editor）
 
 同人誌即売会などの会場マップ画像上に、サークル配置情報を吹き出し形式で追加できるシングルページアプリ。
+
+**公開URL**: https://yuratomaru.github.io/toy-box/otakara-map-editor/
+
 ---
 
 ## 使い方
