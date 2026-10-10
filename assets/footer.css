@@ -1,0 +1,35 @@
+.site-footer {
+  max-width: 880px;
+  margin: 40px auto 0;
+  padding: 16px 20px 32px;
+  border-top: 2px solid var(--line);
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.site-footer p {
+  margin: 4px 0;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--ink);
+}
+
+.site-footer a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.favicon-credit {
+  color: var(--ink-3);
+}
