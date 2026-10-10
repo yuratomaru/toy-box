@@ -1,0 +1,91 @@
+    // DOM要素の参照
+    const dom = {
+      mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+      toolbarLeft: document.getElementById('toolbar-left'),
+      openMapBtn: document.getElementById('open-map-btn'),
+      loadProjectBtn: document.getElementById('load-project-btn'),
+      saveProjectBtn: document.getElementById('save-project-btn'),
+      exportPngBtn: document.getElementById('export-png-btn'),
+      projectNameInput: null,
+      saveStatus: document.getElementById('save-status') || document.createElement('span'), // 表示は廃止（内部状態用のダミー）
+      undoBtn: document.getElementById('undo-btn'),
+      redoBtn: document.getElementById('redo-btn'),
+      recoveryBar: document.getElementById('recovery-bar'),
+      workspace: document.getElementById('workspace'),
+      mapSvg: document.getElementById('map-svg'),
+      canvasBackground: document.getElementById('canvas-background'),
+      mapImage: document.getElementById('map-image'),
+      selectionMarquee: document.getElementById('selection-marquee'),
+      legendLayer: document.getElementById('legend-layer'),
+      linesLayer: document.getElementById('lines-layer'),
+      anchorsLayer: document.getElementById('anchors-layer'),
+      labelsLayer: document.getElementById('labels-layer'),
+      noImageGuide: document.getElementById('no-image-guide'),
+      modePanBtn: document.getElementById('mode-pan-btn'),
+      modeRectBtn: document.getElementById('mode-rect-btn'),
+      zoomInBtn: document.getElementById('zoom-in-btn'),
+      zoomOutBtn: document.getElementById('zoom-out-btn'),
+      resetViewBtn: document.getElementById('reset-view-btn'),
+      resetAllBtn: document.getElementById('reset-all-btn'),
+      customContextMenu: document.getElementById('custom-context-menu'),
+      ctxSpaceInput: document.getElementById('ctx-space-input'),
+      ctxNameInput: document.getElementById('ctx-name-input'),
+      ctxWidthInput: document.getElementById('ctx-width-input'),
+      ctxHeightInput: document.getElementById('ctx-height-input'),
+      ctxDuplicateBtn: document.getElementById('ctx-duplicate-btn'),
+      ctxGroupSelect: document.getElementById('ctx-group-select'),
+      ctxDeleteBtn: document.getElementById('ctx-delete-btn'),
+      previewLoading: document.getElementById('preview-loading'),
+      exportPreviewImg: document.getElementById('export-preview-img'),
+      exportSettingModal: document.getElementById('export-setting-modal'),
+      exportModalClose: document.getElementById('export-modal-close'),
+      exportCancelBtn: document.getElementById('export-cancel-btn'),
+      exportConfirmBtn: document.getElementById('export-confirm-btn'),
+      selectedEditEmpty: document.getElementById('selected-edit-empty'),
+      selectedEditForm: document.getElementById('selected-edit-form'),
+      multiEditIndicator: document.getElementById('multi-edit-indicator'),
+      multiEditCount: document.getElementById('multi-edit-count'),
+      singleEditFields: document.getElementById('single-edit-fields'),
+      sideSpaceInput: document.getElementById('side-space-input'),
+      sideNameInput: document.getElementById('side-name-input'),
+      sideWidthInput: document.getElementById('side-width-input'),
+      sideHeightInput: document.getElementById('side-height-input'),
+      sideGroupSelect: document.getElementById('side-group-select'),
+      sideDuplicateBtn: document.getElementById('side-duplicate-btn'),
+      sideDeleteBtn: document.getElementById('side-delete-btn'),
+      bulkGrid: document.getElementById('bulk-grid'),
+      bulkAddBtn: document.getElementById('bulk-add-btn'),
+      categoryLegendList: document.getElementById('category-legend-list'),
+      createGroupBtn: document.getElementById('create-group-btn'),
+      toggleLegendCb: document.getElementById('toggle-legend-cb'),
+      categoryEditorBox: document.getElementById('category-editor-box'),
+      groupNameInput: document.getElementById('group-name-input'),
+      groupColorInput: document.getElementById('group-color-input'),
+      groupPatternInput: document.getElementById('group-pattern-input'),
+      deleteGroupBtn: document.getElementById('delete-group-btn'),
+      labelList: document.getElementById('label-list'),
+      toast: document.getElementById('toast'),
+      sidePanel: document.getElementById('side-panel'),
+      togglePanelBtn: document.getElementById('toggle-panel-btn'),
+      fileInput: document.getElementById('file-input'),
+      projectLoadInput: document.getElementById('project-load-input'),
+      floatingEditor: document.getElementById('floating-editor'),
+      floatSpace: document.getElementById('float-space'),
+      floatName: document.getElementById('float-name'),
+      bulkGroupSelect: document.getElementById('bulk-group-select'),
+      globalBalloonStyleSelect: document.getElementById('global-balloon-style'),
+      viewScaleSelect: document.getElementById('global-scale-select'),
+    };
+
+    // トースト通知
+    function showToast(msg) {
+      dom.toast.textContent = msg;
+      dom.toast.classList.add('show');
+      clearTimeout(dom.toast.timeout);
+      dom.toast.timeout = setTimeout(() => dom.toast.classList.remove('show'), 2000);
+    }
+
+    const ICON_TRASH = '<svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>';
+
+    // HTML文字列に埋め込む値は必ずエスケープする（保存データ・ZIPインポート由来の値も含む）
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

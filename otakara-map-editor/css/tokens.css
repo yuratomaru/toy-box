@@ -1,0 +1,34 @@
+/* デザイントークン（UIクローム用）。出力物（書き出し画像）は index.html 内の #export-style で独立管理 */
+:root {
+  color-scheme: light;
+  --bg:#E6EBF3; --sheet:#F4F6FB; --surface:#FFFFFF; --surface-done:#ECEFF6; --head-bg:#EEF1F8;
+  --ink:#16203A; --ink-2:#465170; --ink-3:#525D7C; --line:#D0D7E6; --line-strong:#7C87A4;
+  --toast-bg:#16203A; --toast-fg:#FFFFFF; --toast-line:transparent;
+  --accent:#0068A5; --accent-fg:#FFFFFF; --focus:#0072B2; --accent-soft:#DCEBF5;
+  --danger:#C62F3E; --danger-soft:#FDECEE; --warn-bg:#FFF3E0; --warn-line:#FFE0B2; --warn-fg:#8A5A00;
+  --shadow:0 2px 0 rgba(22,32,58,.10),0 12px 16px -12px rgba(22,32,58,.28);
+  --font:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP",Meiryo,system-ui,sans-serif;
+  /* 旧変数名の互換エイリアス */
+  --bg-color:var(--bg); --panel-bg:var(--surface); --border-color:var(--line); --text-color:var(--ink);
+  --accent-color:var(--accent); --accent-hover:#00558A; --panel-width:360px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --toast-bg:#26314F; --toast-fg:#EEF2FB; --toast-line:#3B476B;
+  --bg:#0B1020; --sheet:#151C31; --surface:#1A2238; --surface-done:#141B2E; --head-bg:#222B45;
+  --ink:#EEF2FB; --ink-2:#B9C2DB; --ink-3:#98A3C0; --line:#2D3857; --line-strong:#6B7899;
+  --accent:#56B4E9; --accent-fg:#0B1020; --focus:#56B4E9; --accent-soft:#1F3A52;
+  --danger:#FF8A94; --danger-soft:#3A1F28; --warn-bg:#3A2E14; --warn-line:#5C4A1E; --warn-fg:#E8C16A;
+  --shadow:0 2px 0 rgba(0,0,0,.4),0 12px 16px -12px rgba(0,0,0,.6); --accent-hover:#7CC5EF;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --toast-bg:#26314F; --toast-fg:#EEF2FB; --toast-line:#3B476B;
+    --bg:#0B1020; --sheet:#151C31; --surface:#1A2238; --surface-done:#141B2E; --head-bg:#222B45;
+    --ink:#EEF2FB; --ink-2:#B9C2DB; --ink-3:#98A3C0; --line:#2D3857; --line-strong:#6B7899;
+    --accent:#56B4E9; --accent-fg:#0B1020; --focus:#56B4E9; --accent-soft:#1F3A52;
+    --danger:#FF8A94; --danger-soft:#3A1F28; --warn-bg:#3A2E14; --warn-line:#5C4A1E; --warn-fg:#E8C16A;
+    --shadow:0 2px 0 rgba(0,0,0,.4),0 12px 16px -12px rgba(0,0,0,.6); --accent-hover:#7CC5EF;
+  }
+}

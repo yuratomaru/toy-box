@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>即売会マップエディター</title>
+  <meta name="description" content="マップ画像に吹き出しを追加できる、即売会向け配置図作成ツール">
+  <meta name="theme-color" content="#0068A5">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="即売会マップエディター">
+  <meta property="og:title" content="即売会マップエディター">
+  <meta property="og:description" content="マップ画像に吹き出しを追加できる、即売会向け配置図作成ツール">
+  <meta property="og:url" content="https://yuratomaru.github.io/toy-box/otakara-map-editor/">
+  <meta property="og:locale" content="ja_JP">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="即売会マップエディター">
+  <meta name="twitter:description" content="マップ画像に吹き出しを追加できる、即売会向け配置図作成ツール">
+
+  <link rel="canonical" href="https://yuratomaru.github.io/toy-box/otakara-map-editor/">
+
+  <!-- favicon設定 -->
+  <!-- SVG (モダンブラウザ用) -->
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <!-- 互換用 (旧型ブラウザ・PC用) -->
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32x32.png">
+  <!-- スマホ用 (iOS/Androidホーム画面) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+  <link rel="manifest" href="../assets/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="src/style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
+  <!-- 出力物（PNG書き出し）専用スタイル：UIテーマの影響を受けない -->
+  <style id="export-style">
+    /* ====================================================
+     5. SVG描画要素（吹き出し・パス・文字）
+  ==================================================== */
+    .label-group,
+    .leader-line,
+    .anchor-handle {
+      transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .label-group {
+      cursor: move;
+    }
+
+    .label-rect {
+      stroke-width: 1.5;
+      rx: 5px;
+      filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.08));
+    }
+
+    .label-group.selected .label-rect {
+      stroke: #4b4bfa !important;
+      stroke-width: 3px;
+      filter: drop-shadow(0px 0px 5px rgba(75, 75, 250, 0.7));
+    }
+
+    .label-group.selected .leader-line {
+      stroke: #4b4bfa !important;
+      stroke-width: 2.5px;
+      stroke-dasharray: none;
+    }
+
+    .label-group.selected .anchor-handle {
+      fill: #4b4bfa !important;
+      r: 8px;
+    }
+
+    .label-text {
+      font-family: -apple-system, sans-serif;
+      pointer-events: none;
+    }
+
+    .space-text {
+      font-weight: bold;
+    }
+
+    .name-text {
+      font-weight: 500;
+    }
+
+    .leader-line {
+      stroke-width: 1.8;
+      stroke-dasharray: 4 3;
+      pointer-events: none;
+    }
+
+    .anchor-handle {
+      stroke: #ffffff;
+      stroke-width: 2;
+      cursor: pointer;
+    }
+
+    .dimmed {
+      opacity: 0.15 !important;
+    }
+
+    /* --- 凡例 --- */
+    .legend-container {
+      cursor: move;
+    }
+
+    .legend-bg {
+      fill: #ffffff;
+      stroke: #2f3640;
+      stroke-width: 1.5;
+      rx: 6px;
+      filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.08));
+    }
+
+    .legend-item-text {
+      font-size: 12px;
+      font-weight: 600;
+      fill: #2f3640;
+    }
+  </style>
+</head>
+
+<body>
+  <svg style="width:0; height:0; position:absolute;">
+    <defs>
+      <pattern id="pat-dots" width="8" height="8" patternUnits="userSpaceOnUse">
+        <circle cx="4" cy="4" r="1.8" fill="#000000" opacity="0.35" />
+      </pattern>
+      <pattern id="pat-stripes1" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#000000" stroke-width="1.8" opacity="0.2" />
+      </pattern>
+      <pattern id="pat-stripes2" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#000000" stroke-width="1.8" opacity="0.2" />
+      </pattern>
+      <pattern id="pat-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#000000" stroke-width="1.5" opacity="0.15" />
+      </pattern>
+      <pattern id="pat-diagonal-grid" width="12" height="12" patternUnits="userSpaceOnUse"
+        patternTransform="rotate(45)">
+        <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.4" />
+      </pattern>
+      <pattern id="pat-cross" width="14" height="14" patternUnits="userSpaceOnUse">
+        <path d="M 7,2 L 7,12 M 2,7 L 12,7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.4" />
+      </pattern>
+      <pattern id="pat-wave" width="16" height="12" patternUnits="userSpaceOnUse">
+        <path d="M 0 6 Q 4 2, 8 6 T 16 6" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4" />
+        <path d="M 0 12 Q 4 8, 8 12 T 16 12" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.4" />
+      </pattern>
+    </defs>
+  </svg>
+
+  <svg style="width:0; height:0; position:absolute;" aria-hidden="true">
+    <symbol id="i-map" viewBox="0 0 24 24">
+      <path
+        d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" />
+      <path d="M15 5.764v15" />
+      <path d="M9 3.236v15" />
+    </symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24">
+      <path
+        d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
+    </symbol>
+    <symbol id="i-save" viewBox="0 0 24 24">
+      <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+      <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24">
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+    </symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24">
+      <path d="m15 14 5-5-5-5" />
+      <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13" />
+    </symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24">
+      <line x1="4" x2="20" y1="12" y2="12" />
+      <line x1="4" x2="20" y1="6" y2="6" />
+      <line x1="4" x2="20" y1="18" y2="18" />
+    </symbol>
+    <symbol id="i-pointer" viewBox="0 0 24 24">
+      <path
+        d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z" />
+    </symbol>
+    <symbol id="i-selrect" viewBox="0 0 24 24">
+      <path d="M5 3a2 2 0 0 0-2 2" />
+      <path d="M19 3a2 2 0 0 1 2 2" />
+      <path d="M21 19a2 2 0 0 1-2 2" />
+      <path d="M5 21a2 2 0 0 1-2-2" />
+      <path d="M9 3h1" />
+      <path d="M9 21h1" />
+      <path d="M14 3h1" />
+      <path d="M14 21h1" />
+      <path d="M3 9v1" />
+      <path d="M21 9v1" />
+      <path d="M3 14v1" />
+      <path d="M21 14v1" />
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24">
+      <path d="M5 12h14" />
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24">
+      <line x1="2" x2="5" y1="12" y2="12" />
+      <line x1="19" x2="22" y1="12" y2="12" />
+      <line x1="12" x2="12" y1="2" y2="5" />
+      <line x1="12" x2="12" y1="19" y2="22" />
+      <circle cx="12" cy="12" r="7" />
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+    </symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24">
+      <path
+        d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+    </symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24">
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+      <path
+        d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </symbol>
+    <symbol id="i-rotate-cw" viewBox="0 0 24 24">
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+    </symbol>
+    <symbol id="i-rotate-ccw" viewBox="0 0 24 24">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" x2="12" y1="15" y2="3" />
+    </symbol>
+    <symbol id="i-align-h" viewBox="0 0 24 24">
+      <rect width="14" height="6" x="5" y="16" rx="2" />
+      <rect width="10" height="6" x="7" y="2" rx="2" />
+      <path d="M2 12h20" />
+    </symbol>
+    <symbol id="i-align-v" viewBox="0 0 24 24">
+      <rect width="6" height="14" x="2" y="5" rx="2" />
+      <rect width="6" height="10" x="16" y="7" rx="2" />
+      <path d="M12 2v20" />
+    </symbol>
+    <symbol id="i-crop" viewBox="0 0 24 24">
+      <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+      <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+    </symbol>
+  </svg>
+
+  <header>
+    <button id="mobile-menu-btn" class="secondary" aria-label="メニュー"
+      style="display: none; padding: 4px 10px; font-size: 16px;"><svg class="ic" aria-hidden="true">
+        <use href="#i-menu" />
+      </svg> </button>
+    <div class="toolbar-left" id="toolbar-left">
+      <button id="open-map-btn" class="secondary"><svg class="ic" aria-hidden="true">
+          <use href="#i-map" />
+        </svg> 画像を読み込む</button>
+      <button id="edit-image-btn" class="secondary"><svg class="ic" aria-hidden="true">
+          <use href="#i-crop" />
+        </svg> 画像を編集</button>
+      <button id="load-project-btn" class="secondary"><svg class="ic" aria-hidden="true">
+          <use href="#i-folder" />
+        </svg> データを読み込む (.zip)</button>
+      <button id="save-project-btn" class="secondary"><svg class="ic" aria-hidden="true">
+          <use href="#i-download" />
+        </svg> データを保存 (.zip)</button>
+      <button id="export-png-btn" class="primary"><svg class="ic" aria-hidden="true">
+          <use href="#i-image" />
+        </svg> 画像として保存 (PNG)</button>
+    </div>
+    <div class="toolbar-right">
+      <button id="theme-btn" class="theme-btn" type="button"></button>
+      <button id="undo-btn" disabled aria-label="元に戻す" title="元に戻す (Ctrl+Z)"><svg class="ic" aria-hidden="true">
+          <use href="#i-undo" />
+        </svg> </button>
+      <button id="redo-btn" disabled aria-label="やり直す" title="やり直す"><svg class="ic" aria-hidden="true">
+          <use href="#i-redo" />
+        </svg> </button>
+    </div>
+  </header>
+
+  <div id="recovery-bar" class="hidden">
+    <span><svg class="ic" aria-hidden="true">
+        <use href="#i-bulb" />
+      </svg> 前回の編集データを自動復元しました。[画像を読み込む] と背景も復旧します。リセットしたい場合は右下の「すべて削除」ボタンをご利用ください。</span>
+    <button id="close-recovery-btn"
+      style="background:transparent; border:none; font-size:16px; cursor:pointer; color:var(--warn-fg); padding:0 8px;">×</button>
+  </div>
+
+  <div class="main-container">
+    <div id="workspace">
+      <div id="floating-editor" style="display: none;">
+        <input type="text" id="float-space" placeholder="配置・スペース">
+        <input type="text" id="float-name" placeholder="サークル名">
+        <div id="float-category" class="custom-select-container"></div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+      <svg id="map-svg">
+        <rect id="canvas-background" x="0" y="0" width="1000" height="700" fill="#ffffff" stroke="#cbd5e1"
+          stroke-width="1"></rect>
+        <image id="map-image" x="0" y="0"></image>
+
+        <rect id="selection-marquee" fill="rgba(75, 75, 250, 0.08)" stroke="#4b4bfa" stroke-width="1.5"
+          stroke-dasharray="4 4" display="none"></rect>
+
+        <g id="lines-layer"></g>
+        <g id="labels-layer"></g>
+        <g id="anchors-layer"></g>
+        <g id="legend-layer" class="legend-container"></g>
+      </svg>
+
+      <div id="no-image-guide">
+        <p class="instruction-text"><svg class="ic ic-lg" aria-hidden="true">
+            <use href="#i-map" />
+          </svg>
+          ここに会場マップ画像が表示されます。<br><br><span style="color:var(--accent-color); font-size:12px;">[画像を読み込む]
+            か、<br>この枠内に画像をドロップしてください。</span>
+        </p>
+      </div>
+
+      <div class="map-controls">
+        <div class="mode-controls">
+          <button id="mode-pan-btn" class="active"><svg class="ic" aria-hidden="true">
+              <use href="#i-pointer" />
+            </svg> 移動・選択</button>
+          <button id="mode-rect-btn"><svg class="ic" aria-hidden="true">
+              <use href="#i-selrect" />
+            </svg> 範囲選択</button>
+        </div>
+        <div class="zoom-controls">
+          <button id="zoom-in-btn" class="icon-btn" title="拡大" aria-label="拡大"><svg class="ic" aria-hidden="true">
+              <use href="#i-plus" />
+            </svg> </button>
+          <button id="zoom-out-btn" class="icon-btn" title="縮小" aria-label="縮小"><svg class="ic" aria-hidden="true">
+              <use href="#i-minus" />
+            </svg> </button>
+          <button id="reset-view-btn" class="icon-btn" title="全体表示" aria-label="全体表示"><svg class="ic"
+              aria-hidden="true">
+              <use href="#i-target" />
+            </svg> </button>
+          <button id="reset-all-btn" class="icon-btn" title="すべての吹き出しを削除" aria-label="すべての吹き出しを削除"><svg class="ic"
+              aria-hidden="true">
+              <use href="#i-trash" />
+            </svg> </button>
+        </div>
+      </div>
+
+      <div id="custom-context-menu">
+        <div class="menu-group single-menu-item">
+          <label>配置・スペース</label>
+          <input type="text" id="ctx-space-input">
+        </div>
+        <div class="menu-group single-menu-item">
+          <label>サークル名</label>
+          <input type="text" id="ctx-name-input">
+        </div>
+        <div class="menu-group single-menu-item">
+          <label>サイズ調整</label>
+          <div class="menu-row">
+            <input type="number" id="ctx-width-input" placeholder="幅" title="幅(W)">
+            <input type="number" id="ctx-height-input" placeholder="高" title="高さ(H)">
+          </div>
+        </div>
+        <div class="menu-group" id="ctx-category-group">
+          <label id="ctx-group-label">所属カテゴリ</label>
+          <div id="ctx-group-select" class="custom-select-container"></div>
+        </div>
+        <button class="menu-item-btn single-menu-item" id="ctx-duplicate-btn">複製 (Ctrl+D)</button>
+        <button class="menu-item-btn danger" id="ctx-delete-btn">削除 (Delete)</button>
+      </div>
+
+      <div id="image-edit-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content export-modal-content" role="dialog" aria-modal="true" aria-labelledby="ie-title">
+          <div class="modal-header">
+            <h3 id="ie-title">画像を編集</h3>
+            <button class="modal-close-btn" id="ie-close" type="button" aria-label="閉じる">×</button>
+          </div>
+          <div class="modal-body export-layout ie-layout">
+            <div class="export-preview-pane checkerboard-bg ie-stage" id="ie-stage">
+              <div id="ie-wrap"><canvas id="ie-canvas"></canvas>
+                <div id="ie-crop" hidden></div>
+              </div>
+            </div>
+            <div class="export-settings-pane ie-settings">
+              <div class="setting-block">
+                <label>回転</label>
+                <div class="ie-row">
+                  <button id="ie-rot-ccw" type="button" aria-label="左に90度回転" title="左に90度回転"><svg class="ic"
+                      aria-hidden="true">
+                      <use href="#i-rotate-ccw" />
+                    </svg> 左回転</button>
+                  <button id="ie-rot-cw" type="button" aria-label="右に90度回転" title="右に90度回転"><svg class="ic"
+                      aria-hidden="true">
+                      <use href="#i-rotate-cw" />
+                    </svg> 右回転</button>
+                </div>
+              </div>
+              <div class="setting-block">
+                <label>切り抜き</label>
+                <button id="ie-crop-tgl" class="tgl" type="button" aria-pressed="false">
+                  <span class="tgl-text">切り抜き<small id="ie-size"></small></span><span class="sw"
+                    aria-hidden="true"></span>
+                </button>
+              </div>
+              <div class="setting-block">
+                <label>サイズ</label>
+                <button id="ie-fit-tgl" class="tgl" type="button" aria-pressed="true"><span
+                    class="tgl-text">吹き出しとの比率を維持<small id="ie-fit-note"></small></span><span class="sw"
+                    aria-hidden="true"></span></button>
+                <div class="ie-slider"><span>拡大縮小</span><input type="range" id="ie-scale" min="25" max="400" step="5"
+                    value="100" aria-label="拡大縮小"><output id="ie-scale-v">100%</output></div>
+              </div>
+              <div class="setting-block">
+                <div class="ie-label-row"><label>色の調整</label><button id="ie-reset-adj" class="ie-link"
+                    type="button">リセット</button></div>
+                <button id="ie-mono-btn" class="tgl" type="button" aria-pressed="false"><span
+                    class="tgl-text">モノクロ</span><span class="sw" aria-hidden="true"></span></button>
+                <div class="ie-slider"><span>明るさ</span><input type="range" id="ie-bright" min="50" max="150" value="100"
+                    aria-label="明るさ"><output id="ie-bright-v">100%</output></div>
+                <div class="ie-slider"><span>コントラスト</span><input type="range" id="ie-contrast" min="50" max="150"
+                    value="100" aria-label="コントラスト"><output id="ie-contrast-v">100%</output></div>
+              </div>
+              <div class="ie-actions">
+                <button id="ie-undo" type="button" disabled title="直前の画像編集を取り消す"><svg class="ic" aria-hidden="true">
+                    <use href="#i-undo" />
+                  </svg> 取り消し</button>
+                <button id="ie-cancel" type="button">キャンセル</button>
+                <button id="ie-apply" type="button" class="primary">適用</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="export-setting-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content export-modal-content">
+          <div class="modal-header">
+            <h3>画像として保存 (PNG)</h3>
+            <button class="modal-close-btn" id="export-modal-close">×</button>
+          </div>
+          <div class="modal-body export-layout">
+
+            <div class="export-preview-pane checkerboard-bg">
+              <span id="preview-loading"
+                style="font-size: 13px; color: var(--ink-3); font-weight: 600; position:absolute; z-index: 2; background: var(--surface); padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">プレビューを生成中...</span>
+              <div id="export-size-warning" style="color: #ff4444; font-weight: bold; margin: 10px 0;"></div>
+              <img id="export-preview-img" draggable="false"
+                style="max-width: 95%; max-height: 95%; display: none; object-fit: contain; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1; pointer-events: none; user-select: none;">
+            </div>
+
+            <div class="export-settings-pane">
+              <div class="setting-block">
+                <label>書き出し範囲</label>
+                <div class="radio-group">
+                  <label class="radio-btn">
+                    <input type="radio" name="exp-range" value="base-image" checked>
+                    <span>背景画像のサイズで切り抜く (枠外はカット)</span>
+                  </label>
+                  <label class="radio-btn">
+                    <input type="radio" name="exp-range" value="all-elements">
+                    <span>すべての要素を含める (枠外のはみ出しも残す)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="setting-block">
+                <label>背景の透過設定</label>
+                <div class="radio-group">
+                  <label class="radio-btn">
+                    <input type="radio" name="exp-bg" value="include" checked>
+                    <span>背景 (地図・白地)を含めて書き出す</span>
+                  </label>
+                  <label class="radio-btn">
+                    <input type="radio" name="exp-bg" value="transparent">
+                    <span>背景を透明にする (吹き出しと線のみ)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="setting-block">
+                <label>出力サイズ（解像度）</label>
+                <div class="radio-group row-group">
+                  <label class="radio-btn" style="flex:1;">
+                    <input type="radio" name="exp-scale" value="1" checked>
+                    <span style="text-align:center; padding: 8px 4px;">
+                      <div style="font-weight:600; margin-bottom:2px;">等倍</div>
+                      <div id="dim-scale-1" style="font-size:10px; color:var(--ink-3);">-- x -- px</div>
+                    </span>
+                  </label>
+                  <label class="radio-btn" style="flex:1;">
+                    <input type="radio" name="exp-scale" value="2">
+                    <span style="text-align:center; padding: 8px 4px;">
+                      <div style="font-weight:600; margin-bottom:2px;">2倍 </div>
+                      <div id="dim-scale-2" style="font-size:10px; color:var(--ink-3);">-- x -- px</div>
+                    </span>
+                  </label>
+                  <label class="radio-btn" style="flex:1;">
+                    <input type="radio" name="exp-scale" value="3">
+                    <span style="text-align:center; padding: 8px 4px;">
+                      <div style="font-weight:600; margin-bottom:2px;">3倍</div>
+                      <div id="dim-scale-3" style="font-size:10px; color:var(--ink-3);">-- x -- px</div>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="export-actions">
+                <button id="export-cancel-btn"
+                  style="padding:12px 20px; font-weight:600; background:var(--head-bg); color:var(--ink-3); border:1px solid var(--line); border-radius:8px; cursor:pointer;">キャンセル</button>
+                <button id="export-confirm-btn"
+                  style="padding:12px 24px; font-size:15px; font-weight:700; background:var(--accent-color); color:var(--accent-fg); border:none; border-radius:8px; cursor:pointer; flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.2);"><svg
+                    class="ic" aria-hidden="true">
+                    <use href="#i-download" />
+                  </svg> ダウンロード</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="filename-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="fn-title"
+        style="width: min(420px, 90vw);">
+        <div class="modal-header">
+          <h3 id="fn-title">保存名を入力</h3>
+          <button class="modal-close-btn" id="fn-close" type="button" aria-label="閉じる">×</button>
+        </div>
+        <div class="fn-body">
+          <div class="fn-field"><input id="fn-input" type="text" maxlength="100" autocomplete="off"
+              aria-label="保存名"><span id="fn-ext" class="fn-ext"></span></div>
+          <div class="ie-actions">
+            <button id="fn-cancel" type="button">キャンセル</button>
+            <button id="fn-ok" type="button" class="primary"><svg class="ic" aria-hidden="true">
+                <use href="#i-download" />
+              </svg> 保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="license-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="lic-title"
+        style="width: min(560px, 92vw); max-height: 85dvh;">
+        <div class="modal-header">
+          <h3 id="lic-title">ライセンス・利用素材</h3>
+          <button class="modal-close-btn" id="license-close" type="button" aria-label="閉じる">×</button>
+        </div>
+        <div class="lic-body">
+          <dl class="lic-list">
+            <dt>即売会マップエディター（otakara-map-editor）</dt>
+            <dd>MIT License &copy; 2026 YuraTomaru</dd>
+            <dt><a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener noreferrer">JSZip</a>
+              3.10.1（ZIPの保存・読込）</dt>
+            <dd>MIT License（MIT / GPLv3 デュアルライセンスのうちMITを選択） &copy; Stuart Knightley and contributors</dd>
+            <dt><a href="https://lucide.dev/" target="_blank" rel="noopener noreferrer">Lucide</a>（アイコン）</dt>
+            <dd>ISC License &copy; Lucide Contributors。Feather 由来部分は MIT License &copy; Cole Bemis</dd>
+            <dt><a href="https://github.com/googlefonts/zen-kakugothic" target="_blank" rel="noopener noreferrer">Zen
+                Kaku Gothic New</a>（フォント）</dt>
+            <dd>SIL Open Font License 1.1（Google Fonts から読み込み）</dd>
+          </dl>
+          <p class="lic-note">ライセンス全文は <a
+              href="https://github.com/yuratomaru/toy-box/otakara-map-editor/blob/main/THIRD_PARTY_NOTICES.md"
+              target="_blank" rel="noopener noreferrer">THIRD_PARTY_NOTICES.md</a> を参照してください。読み込んだ画像の権利は、画像の権利者に帰属します。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="dialog-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title"
+        aria-describedby="dlg-msg" style="width: min(420px, 90vw);">
+        <div class="modal-header">
+          <h3 id="dlg-title"></h3>
+          <button class="modal-close-btn" id="dlg-close" type="button" aria-label="閉じる">×</button>
+        </div>
+        <div class="fn-body">
+          <p id="dlg-msg" class="dlg-msg"></p>
+          <div class="ie-actions">
+            <button id="dlg-cancel" type="button">キャンセル</button>
+            <button id="dlg-ok" type="button" class="primary">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="side-panel">
+
+      <details class="panel-section" open>
+        <summary>吹き出しを連続追加</summary>
+        <div class="section-content">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label>所属カテゴリ</label>
+            <div id="bulk-group-select" class="custom-select-container"></div>
+          </div>
+
+          <div id="bulk-grid"></div>
+          <button id="bulk-add-btn" class="primary" style="width: 100%; justify-content: center;">マップにまとめて配置</button>
+          <p class="instruction-text" style="font-size:10px; color:var(--ink-3); text-align:center; margin-top:6px;">
+            <svg class="ic" aria-hidden="true">
+              <use href="#i-bulb" />
+            </svg> マップの何もないところをダブルクリック/長押しでも配置可能
+          </p>
+        </div>
+      </details>
+
+      <details class="panel-section" open>
+        <summary>選択中の吹き出し編集</summary>
+        <div class="section-content" style="background: var(--surface);">
+          <div id="selected-edit-empty"
+            style="color:var(--ink-3); font-size:12px; text-align:center; padding:12px; border: 1px dashed var(--border-color); border-radius:6px; background:var(--sheet);">
+            マップ上の吹き出しを選択してください。<br>
+            <span class="instruction-text" style="font-size:10px; color:var(--ink-3);">(Ctrl/Cmd+クリックで複数選択)</span>
+          </div>
+          <div id="selected-edit-form" style="display:none; flex-direction:column; gap:10px;">
+            <div id="multi-edit-indicator"
+              style="display:none; color:var(--accent-color); font-weight:700; font-size:12px; background:var(--accent-soft); padding:6px 10px; border-radius:4px;">
+              <svg class="ic" aria-hidden="true">
+                <use href="#i-bolt" />
+              </svg> <span id="multi-edit-count">0</span> 件の吹き出しを一括選択中
+            </div>
+            <div id="align-block" style="display:none; flex-direction:column; gap:8px;">
+              <div class="form-group"><label>近いものを整列</label></div>
+              <div class="seg" role="group" aria-label="整列の対象">
+                <button id="align-target-balloon" type="button" aria-pressed="true">吹き出し</button>
+                <button id="align-target-anchor" type="button" aria-pressed="false">アンカー</button>
+              </div>
+              <div class="align-row">
+                <button id="align-row-btn" type="button" title="上下の位置が近いものを横一列に揃える"><svg class="ic" aria-hidden="true">
+                    <use href="#i-align-h" />
+                  </svg> 横一列</button>
+                <button id="align-col-btn" type="button" title="左右の位置が近いものを縦一列に揃える"><svg class="ic" aria-hidden="true">
+                    <use href="#i-align-v" />
+                  </svg> 縦一列</button>
+              </div>
+              <div class="ie-slider align-tol"><span>感度</span><input type="range" id="align-tol" min="10" max="150"
+                  step="5" value="50" aria-label="整列させる許容距離"><output id="align-tol-v">50</output></div>
+            </div>
+            <div id="single-edit-fields" style="display:flex; flex-direction:column; gap:8px;">
+              <div class="form-group">
+                <label>配置・スペース</label>
+                <input type="text" id="side-space-input" aria-label="配置・スペース">
+              </div>
+              <div class="form-group">
+                <label>サークル名</label>
+                <input type="text" id="side-name-input" aria-label="サークル名">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>幅 (W)</label> <input type="number" id="side-width-input" aria-label="幅">
+                </div>
+                <div class="form-group">
+                  <label>高さ (H)</label> <input type="number" id="side-height-input" aria-label="高さ">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>所属カテゴリ</label>
+              <div id="side-group-select" class="custom-select-container"></div>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:4px;">
+              <button id="side-duplicate-btn" style="flex:1; justify-content:center; font-size:12px; padding:6px;"><svg
+                  class="ic" aria-hidden="true">
+                  <use href="#i-copy" />
+                </svg> 複製</button>
+              <button id="side-delete-btn"
+                style="flex:1; justify-content:center; font-size:12px; padding:6px; color:var(--danger); border-color:var(--danger);"><svg
+                  class="ic" aria-hidden="true">
+                  <use href="#i-trash" />
+                </svg> 削除</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel-section" open>
+        <summary>カテゴリ・凡例設定</summary>
+        <div class="section-content">
+          <div id="category-legend-list" class="category-legend-list"></div>
+          <div id="category-editor-box" class="category-editor-box">
+            <div class="form-group">
+              <label>カテゴリ名</label>
+              <input type="text" id="group-name-input">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>ベースカラー</label>
+                <input type="color" id="group-color-input" style="width:100%; height:30px; padding:0; cursor:pointer;">
+              </div>
+              <div class="form-group">
+                <label>白黒印刷用模様</label>
+                <select id="group-pattern-input">
+                  <option value="none">なし（ベタ塗り）</option>
+                  <option value="dots">濃いドット（水玉）</option>
+                  <option value="stripes1">斜線1（ストライプ）</option>
+                  <option value="stripes2">斜線2（ストライプ）</option>
+                  <option value="diagonal-grid">斜め格子</option>
+                  <option value="grid">方眼格子</option>
+                  <option value="cross">十字</option>
+                  <option value="wave">波線</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--line);">
+              <label class="instruction-text" style="font-size: 10px; color: var(--ink-3); font-weight: 600;"><svg
+                  class="ic" aria-hidden="true">
+                  <use href="#i-palette" />
+                </svg> おすすめセット (クリックで即適用):</label>
+              <div id="cud-quick-palette" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;"></div>
+            </div>
+
+            <button id="delete-group-btn"
+              style="color:var(--danger); border-color:var(--danger); font-size:11px; padding:4px; justify-content:center; margin-top:12px;"><svg
+                class="ic" aria-hidden="true">
+                <use href="#i-trash" />
+              </svg>
+              このカテゴリを削除</button>
+          </div>
+          <div style="display: flex; gap: 8px; align-items:center; justify-content: space-between;">
+            <button id="create-group-btn" style="font-size:11px; padding:5px 8px;">＋新しいカテゴリを追加</button>
+            <label style="font-size:11px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" id="toggle-legend-cb"> 凡例をマップに表示
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel-section" open>
+        <summary>全体デザイン設定</summary>
+        <div class="section-content">
+          <div class="form-group">
+            <label>吹き出しのスタイル</label>
+            <select id="global-balloon-style">
+              <option value="default">標準（点線）</option>
+              <option value="comic">漫画風（ツノ）</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label>吹き出しのサイズ</label>
+            <select id="global-scale-select">
+              <option value="0.65">小 (65%)</option>
+              <option value="1.0" selected>中 (100%)</option>
+              <option value="1.5">大 (150%)</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel-section" open>
+        <summary>配置データ一覧</summary>
+        <div class="section-content" style="padding: 8px;">
+          <div id="label-list"></div>
+        </div>
+      </details>
+    </div>
+    <button id="toggle-panel-btn" aria-label="パネルの開閉" title="パネルの開閉">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+
+  </div>
+
+  <footer>
+    <span><svg class="ic" aria-hidden="true">
+        <use href="#i-lock" />
+      </svg> 入力データはサーバーに送信されません（ブラウザ内で処理）</span>
+    <button id="license-link" class="link-btn" type="button">ライセンス・利用素材</button>
+  </footer>
+
+  <input type="file" id="file-input" accept="image/*" style="display: none;">
+  <input type="file" id="project-load-input" accept=".zip" style="display: none;">
+
+  <script src="js/dom.js"></script>
+
+  <script src="js/filename.js"></script>
+  <script src="js/dialog.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/project-io.js"></script>
+  <script src="js/export-image.js"></script>
+  <script src="js/image-edit.js"></script>
+  <script src="js/align.js"></script>
+
+  <script src="js/main.js"></script>
+</body>
+
+</html>
