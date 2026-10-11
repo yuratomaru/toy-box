@@ -299,6 +299,7 @@ h1, h2, h3, p { margin: 0; }
 .bar-ctls { display: flex; flex-direction: column; gap: 16px; }
 .ctl { display: flex; align-items: center; gap: 16px; }
 .ctl-l { width: 56px; flex: none; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.cap-opts { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .seg {
   flex: 1;
   display: flex;
@@ -461,7 +462,9 @@ h1, h2, h3, p { margin: 0; }
 /* 💡 スペース・サークル名セル(rowspan結合)は、グループ内のいずれかの頒布物が
    購入済みなら薄く表示する(先頭行だけの購入状態に依存しない) */
 .tbl td.c-space.grp-purchased,
-.tbl td.c-circle.grp-purchased { opacity: .5; background: var(--surface-done); }
+.tbl td.c-circle.grp-purchased { opacity: .5; }
+.tbl tr:not([data-circle-category]) td.c-space.grp-purchased,
+.tbl tr:not([data-circle-category]) td.c-circle.grp-purchased { background: var(--surface-done); }
 
 /* カード表示 */
 /* 💡 1fr は中身の最小幅まで列を押し広げてしまうため、minmax(0, 1fr)で列幅を固定し、はみ出しを防ぐ */
@@ -524,7 +527,7 @@ h1, h2, h3, p { margin: 0; }
 /* 購入チェック列：ボタン(32px)+左右パディングが収まる幅を確保し、スペース列と重ならないようにする */
 .tbl .c-chk { width: 56px; text-align: center; vertical-align: middle; }
 .tbl .c-chk .cbx { width: 32px; height: 32px; font-size: 11px; margin: 0 auto; }
-.tbl .c-space { width: 56px; vertical-align: middle; }
+.tbl .c-space { width: calc(56px + var(--ccat-extra, 0px)); vertical-align: middle; }
 .tbl { --circle-w: 72px; }
 .tbl .c-circle {
   width: var(--circle-w);
@@ -582,7 +585,7 @@ h1, h2, h3, p { margin: 0; }
 @media (min-width: 480px) {
   .tbl .c-chk { width: 64px; }
   .tbl .c-chk .cbx { width: 36px; height: 36px; }
-  .tbl .c-space { width: 64px; }
+  .tbl .c-space { width: calc(64px + var(--ccat-extra, 0px)); }
   .tbl { --circle-w: 84px; }
   .tbl .c-circle { font-size: 13px; }
   .tbl .c-price { width: 100px; }
@@ -591,7 +594,7 @@ h1, h2, h3, p { margin: 0; }
 @media (min-width: 640px) {
   .tbl .c-chk { width: 72px; }
   .tbl .c-chk .cbx { width: 40px; height: 40px; font-size: 13px; }
-  .tbl .c-space { width: 76px; }
+  .tbl .c-space { width: calc(76px + var(--ccat-extra, 0px)); }
   .tbl { --circle-w: 100px; }
   .tbl .c-price { width: 120px; }
   .tbl .price { font-size: 20px; }
@@ -623,6 +626,127 @@ h1, h2, h3, p { margin: 0; }
 }
 .save-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ============ サークルカテゴリの色・模様 ============
+   data-circle-category="1〜8" を付けた要素に、--gc(テーマ色)・--gc-tint(極薄色)・
+   --gc-pat(模様タイル)・--gc-pat-size を供給する。
+   見た目は「小さな色帯(模様つき)＋極薄色の地」に絞り、面積を抑えて穏やかにしている。
+   模様は html2canvas での画像書き出しに耐えるよう、自己完結した data-URI SVG のタイル。
+   ※ color-mix() は html2canvas が解釈できないため使わず、薄色は固定値で持つ。 */
+:root {
+  /* 色帯の太さ(テーブルは左端の幅、カードは上端の高さ)。もっと控えめにしたい時は小さくする */
+  --gc-strip-w: 14px;
+  --gc-strip-h: 10px;
+}
+@media (max-width: 639px) { :root { --gc-strip-w: 10px; } }
+:root {
+  --gct1: #FCE7E9; --gct2: #E4EEF6; --gct3: #E5F3F2; --gct4: #FEF4EC; --gct5: #FAE9F6; --gct6: #E4E7EB; --gct7: #F1E9F5; --gct8: #FCF8ED;
+}
+/* ダーク用の薄色(既存のダーク変数定義と同じ作法で :root に置き、ダーク時に差し替える) */
+:root {
+  --dark-gct1: #3B2741; --dark-gct2: #1A3053; --dark-gct3: #1D374D; --dark-gct4: #3D3845; --dark-gct5: #392A53; --dark-gct6: #1A2744; --dark-gct7: #2D2951; --dark-gct8: #3B3E47;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --gct1: var(--dark-gct1); --gct2: var(--dark-gct2); --gct3: var(--dark-gct3); --gct4: var(--dark-gct4); --gct5: var(--dark-gct5); --gct6: var(--dark-gct6); --gct7: var(--dark-gct7); --gct8: var(--dark-gct8); }
+}
+:root[data-theme="dark"] { --gct1: var(--dark-gct1); --gct2: var(--dark-gct2); --gct3: var(--dark-gct3); --gct4: var(--dark-gct4); --gct5: var(--dark-gct5); --gct6: var(--dark-gct6); --gct7: var(--dark-gct7); --gct8: var(--dark-gct8); }
+[data-circle-category="1"] { /* 1. 赤 / none */
+  --gc: #e63946; --gc-tint: var(--gct1);
+  --gc-pat: none; --gc-pat-size: auto;
+}
+[data-circle-category="2"] { /* 2. 青 / dots */
+  --gc: #1d70b8; --gc-tint: var(--gct2);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='8'%20height='8'%20viewBox='0%200%208%208'%3E%3Ccircle%20cx='4'%20cy='4'%20r='1.8'%20fill='%23000'%20fill-opacity='.35'/%3E%3C/svg%3E"); --gc-pat-size: 8px 8px;
+}
+[data-circle-category="3"] { /* 3. 緑 / stripes1 */
+  --gc: #2a9d8f; --gc-tint: var(--gct3);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%3E%3Cg%20stroke='%23000'%20stroke-opacity='.2'%20stroke-width='1.8'%3E%3Cpath%20d='M0%2014L14%200M-2%202L2%20-2M12%2016L16%2012'/%3E%3C/g%3E%3C/svg%3E"); --gc-pat-size: 14px 14px;
+}
+[data-circle-category="4"] { /* 4. 橙 / stripes2 */
+  --gc: #f4a261; --gc-tint: var(--gct4);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%3E%3Cg%20stroke='%23000'%20stroke-opacity='.2'%20stroke-width='1.8'%3E%3Cpath%20d='M0%200L14%2014M-2%2012L2%2016M12%20-2L16%202'/%3E%3C/g%3E%3C/svg%3E"); --gc-pat-size: 14px 14px;
+}
+[data-circle-category="5"] { /* 5. 桃 / diagonal-grid */
+  --gc: #d94bb7; --gc-tint: var(--gct5);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='17'%20height='17'%20viewBox='0%200%2017%2017'%3E%3Cg%20stroke='%23fff'%20stroke-opacity='.4'%20stroke-width='1.5'%20fill='none'%3E%3Cpath%20d='M-17%2034L34%20-17M-34%2017L17%20-34M0%2051L51%200'/%3E%3Cpath%20d='M-17%20-17L34%2034M-34%200L17%2051M0%20-34L51%2017'/%3E%3C/g%3E%3C/svg%3E"); --gc-pat-size: 17px 17px;
+}
+[data-circle-category="6"] { /* 6. 紺 / grid */
+  --gc: #1d3557; --gc-tint: var(--gct6);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M10%200H0V10'%20fill='none'%20stroke='%23000'%20stroke-opacity='.15'%20stroke-width='1.5'/%3E%3C/svg%3E"); --gc-pat-size: 10px 10px;
+}
+[data-circle-category="7"] { /* 7. 紫 / cross */
+  --gc: #8e44ad; --gc-tint: var(--gct7);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%3E%3Cpath%20d='M7%202V12M2%207H12'%20stroke='%23fff'%20stroke-opacity='.4'%20stroke-width='2'%20stroke-linecap='round'%20fill='none'/%3E%3C/svg%3E"); --gc-pat-size: 14px 14px;
+}
+[data-circle-category="8"] { /* 8. 黄 / wave */
+  --gc: #e9c46a; --gc-tint: var(--gct8);
+  --gc-pat: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='12'%20viewBox='0%200%2016%2012'%3E%3Cg%20fill='none'%20stroke='%23fff'%20stroke-opacity='.4'%20stroke-width='2'%3E%3Cpath%20d='M0%206Q4%202%208%206T16%206'/%3E%3Cpath%20d='M0%2012Q4%208%208%2012T16%2012'/%3E%3C/g%3E%3C/svg%3E"); --gc-pat-size: 16px 12px;
+}
+
+/* --- 色帯(色＋模様)の共通パーツ --- */
+.card[data-circle-category]::before,
+.tbl tr[data-circle-category] > td.c-space::before,
+.ccat-sw {
+  background-color: var(--gc);
+  background-image: var(--gc-pat);
+  background-size: var(--gc-pat-size);
+}
+
+/* --- 適用先：カード表示(上端に細い色帯＋見出しだけ極薄色) --- */
+.card[data-circle-category] { position: relative; }
+.card[data-circle-category]::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: var(--gc-strip-h);
+  border-radius: 10px 10px 0 0;
+}
+.card[data-circle-category] .group-head {
+  margin: -16px -16px 16px;
+  padding: calc(16px + var(--gc-strip-h)) 16px 16px;
+  background: var(--gc-tint);
+  border-radius: 10px 10px 0 0;
+}
+
+/* --- 適用先：テーブル表示(配置セルの左端に色帯＋配置・サークル名セルだけ極薄色) --- */
+/* 配置列を色帯の分だけ広げるのは、幅に余裕のある画面(640px以上)だけ。狭い画面では列を広げず、色帯を細くする */
+@media (min-width: 640px) { .tbl.has-ccat { --ccat-extra: var(--gc-strip-w); } }
+@media (max-width: 639px) { :root { --gc-strip-w: 8px; } }
+.tbl tr[data-circle-category] > td.c-space { position: relative; padding-left: calc(var(--gc-strip-w) + 4px); }
+.tbl tr[data-circle-category] > td.c-space::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: var(--gc-strip-w);
+}
+.tbl tr[data-circle-category] > td.c-space,
+.tbl tr[data-circle-category] > td.c-circle { background: var(--gc-tint); }
+
+/* --- 凡例(画像にも写る) --- */
+.ccat-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: 0 0 16px; padding: 12px 16px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 12px;
+}
+.ccat-legend-ttl { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.ccat-legend-item { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.ccat-sw {
+  flex: none; width: 32px; height: 18px; border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, .3);
+}
+
+/* --- 設定パネル(折りたたみ) --- */
+.tool-card details + details { margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--line); }
+.ccat-hint { margin: 16px 0 0; }
+.ccat-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ccat-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ccat-name { flex: 1 1 120px; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.ccat-name small { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.ccat-empty { font-size: 13px; color: var(--ink-2); }
+.select {
+  min-height: 44px; padding: 8px 12px;
+  background: var(--sheet); color: var(--ink);
+  border: 2px solid var(--line); border-radius: 8px;
+  font: inherit; font-size: 14px;
+}
+
 /* ============ 撮影モード ============ */
 html.capture .tool { display: none; }
 html.capture .app { padding-top: 16px; }
@@ -648,6 +772,7 @@ html.capture .app { padding-top: 16px; }
   border-radius: 16px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, .3);
 }
+.dock-opts { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 24px; padding: 4px 0; }
 .dock-btns { display: flex; gap: 8px; }
 .dock-btns .btn { flex: 1; }
 .dock-hint { font-size: 12px; color: var(--ink-2); text-align: center; }
