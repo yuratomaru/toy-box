@@ -20,12 +20,23 @@
   <meta name="twitter:title" content="お品書き Viewer">
   <meta name="twitter:description" content="スプレッドシートから貼り付けた複数サークルのお品書きをプレビューするツール。画像書き出し機能付き。">
 
+  <!-- favicon設定 -->
+  <!-- SVG (モダンブラウザ用) -->
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <!-- 互換用 (旧型ブラウザ・PC用) -->
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32x32.png">
+  <!-- スマホ用 (iOS/Androidホーム画面) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+  <link rel="manifest" href="../assets/site.webmanifest">
+
   <link rel="canonical" href="https://yuratomaru.github.io/toy-box/oshinagaki-viewer/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="../assets/footer.css">
 </head>
 
 <body>
@@ -172,6 +183,12 @@
     </div>
   </div>
   <button type="button" class="reveal" id="reveal" aria-label="操作ボタンを表示"></button>
+
+  <footer class="site-footer">
+    <p>© 2026 YuraTomaru - <a href="https://opensource.org/licenses/MIT" rel="license">MIT License</a></p>
+    <p class="favicon-credit">Favicon: Icon by <a href="https://icons8.com/icons/set/geometry-geometric--blue"
+        rel="noopener">Icons8</a></p>
+  </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="src/main.js"></script>
