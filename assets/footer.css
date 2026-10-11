@@ -1,7 +1,7 @@
+/* 共通フッター (複数ページで共用する想定。将来的に assets/ 配下への配置も検討) */
 .site-footer {
-  max-width: 880px;
-  margin: 40px auto 0;
-  padding: 16px 20px 32px;
+  margin: 40px 0 0;
+  padding: 16px 0 0;
   border-top: 2px solid var(--line);
   font-family: var(--ui);
   font-size: 12px;
