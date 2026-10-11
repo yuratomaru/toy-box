@@ -8,7 +8,15 @@
   const MIN_ROWS = 13;
   // 💡 巨大データによるフリーズ防止のための上限(実用上十分な余裕を持たせる)
   const MAX_ROWS = 1000;
-  const MAX_COLS = 12; // 基本6列だが多少の余裕を持たせる
+  const MAX_COLS = 12; // 基本6列(+任意のサークルカテゴリ列)だが多少の余裕を持たせる
+  // 💡 サークルカテゴリ：任意の追加列。ヘッダーに見出しがある時だけ有効になる
+  const CCAT_COL = 'circleCat';
+  const CCAT_HEADER = 'サークルカテゴリ';
+  // 💡 旧称の「ジャンル」「genre」も見出しとして認識する(以前に入力済みのデータを読めるようにするため)
+  const CCAT_SYN = ['サークルカテゴリ', 'サークル分類', 'サークルジャンル', 'ジャンル', 'circlecategory', 'circlegenre', 'genre'];
+  // 💡 色・模様の見た目は style.css の [data-circle-category="1〜8"] と対応(順序を揃えること)
+  const CCAT_PRESET_LABELS = ['赤・無地', '青・ドット', '緑・斜線(／)', '橙・斜線(＼)', '桃・斜め格子', '紺・格子', '紫・十字', '黄・波線'];
+  const CCAT_PRESET_COUNT = CCAT_PRESET_LABELS.length;
   const MAX_CELL_CHARS = 1000;
 
   const CHECK_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -16,18 +24,18 @@
   const MOON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
 
   const SAMPLE = [
-    COLS.map(c => COL_LABEL[c]),
-    ['1日目-X041', 'NNN出張支店',   'テディベア写真集',       'その他',    '無配', '優先順最下位'],
-    ['1日目-X041', 'NNN出張支店',   '新刊セット',           'セット',    '5000', '「セット」があると優先順1位'],
-    ['1日目-X041', 'NNN出張支店',   'MOCCノ全テ',           '新刊',      '3000', '「新刊」があると優先順2位'],
-    ['1日目-X041', 'NNN出張支店',   '再録本',             '準新刊',    '3000', '「新刊」の前に文字が入ると優先順3位'],
-    ['日曜-Y012',      '便利屋K☆', 'だれでも簡単！応急処置',        '既刊',      '1000', ''],
-    ['日曜-Y012',      '便利屋K☆', 'COATL HEADS',        '新刊セット',    '2000',  'セット割あり'],
-    ['東1ホール A031',      '丁屋デリバリー',   'クレープ',       '食品',      '1000',  '新刊・既刊・グッズ以外はその他カテゴリ'],
-    ['Z-110',      'ラウンドテーブル',        '複製会員カード',       'グッズ',      '', '価格は当日確認'],
-    ['Z-110',      'ラウンドテーブル',        'α',       '新刊',      '10000000', '頒布価格表示上限(一千万)'],
-    ['B210',      '西中央特別班',      'AX完全復元模型',       'グッズ',      '20000',     ''],
-    ['',      'レコーダー',   '無題',        '新刊',      '無料', '価格部分も自由に入力可能']
+    COLS.map(c => COL_LABEL[c]).concat(CCAT_HEADER),
+    ['1日目-X041', 'NNN出張支店',   'テディベア写真集',       'その他',    '無配', '優先順最下位', 'イラスト'],
+    ['1日目-X041', 'NNN出張支店',   '新刊セット',           'セット',    '5000', '「セット」があると優先順1位', ''],
+    ['1日目-X041', 'NNN出張支店',   'MOCCノ全テ',           '新刊',      '3000', '「新刊」があると優先順2位', ''],
+    ['1日目-X041', 'NNN出張支店',   '再録本',             '準新刊',    '3000', '「新刊」の前に文字が入ると優先順3位', ''],
+    ['日曜-Y012',      '便利屋K☆', 'だれでも簡単！応急処置',        '既刊',      '1000', '', '小説'],
+    ['日曜-Y012',      '便利屋K☆', 'COATL HEADS',        '新刊セット',    '2000',  'セット割あり', ''],
+    ['東1ホール A031',      '丁屋デリバリー',   'クレープ',       '食品',      '1000',  '新刊・既刊・グッズ以外はその他カテゴリ', '飲食'],
+    ['Z-110',      'ラウンドテーブル',        '複製会員カード',       'グッズ',      '', '価格は当日確認', '音楽'],
+    ['Z-110',      'ラウンドテーブル',        'α',       '新刊',      '10000000', '頒布価格表示上限(一千万)', ''],
+    ['B210',      '西中央特別班',      'AX完全復元模型',       'グッズ',      '20000',     '', '工作'],
+    ['',      'レコーダー',   '無題',        '新刊',      '無料', '価格部分も自由に入力可能', '']
   ];
 
   const root = document.documentElement;
@@ -41,8 +49,11 @@
     title: '頒布物リスト',
     view: window.innerWidth < 640 ? 'card' : 'table',
     mode: 'private',
+    capShowTotal: true,   // 💡 撮影モード(公開用表示)で「合計金額」を表示するか
+    capShowLegend: true,  // 💡 撮影モード(公開用表示)で「サークルカテゴリの凡例」を表示するか
     theme: null,
     ov: {},
+    circleCatMap: Object.create(null), // 💡 サークルカテゴリ名(正規化キー) → プリセット番号(0〜7)。見た目の割り当てを保持
     circleColW: null // 💡 プレビューのテーブルで「サークル名」列をドラッグ調整した幅(px)。未調整ならnull
   };
 
@@ -82,6 +93,19 @@
     return out;
   }
 
+  // 💡 保存データの circleCatMap を検証・正規化する(__proto__等のキーも無害に扱えるようプロトタイプなしのオブジェクトにする)
+  function sanitizeCircleCatMap(m) {
+    const out = Object.create(null);
+    if (!isPlainObject(m)) return out;
+    let n = 0;
+    for (const k of Object.keys(m)) {
+      if (n >= MAX_ROWS) break;
+      const v = m[k];
+      if (k.length <= 100 && Number.isInteger(v) && v >= 0 && v < CCAT_PRESET_COUNT) { out[k] = v; n++; }
+    }
+    return out;
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -93,8 +117,11 @@
       if (typeof o.title === 'string') state.title = o.title.slice(0, 200);
       if (o.view === 'table' || o.view === 'card') state.view = o.view;
       if (o.theme === 'light' || o.theme === 'dark') state.theme = o.theme;
+      if (typeof o.capShowTotal === 'boolean') state.capShowTotal = o.capShowTotal;
+      if (typeof o.capShowLegend === 'boolean') state.capShowLegend = o.capShowLegend;
       // 💡 不正なovが保存されていた場合も、無理に復元せず安全な初期状態(空)にフォールバックする
       state.ov = sanitizeOv(o.ov);
+      state.circleCatMap = sanitizeCircleCatMap(o.circleCatMap || o.genreMap); // 💡 旧キー(genreMap)も読む
       if (typeof o.circleColW === 'number' && Number.isFinite(o.circleColW) && o.circleColW > 0) state.circleColW = o.circleColW;
     } catch (e) { /* 読み込めなくても安全な初期状態のまま続行 */ }
   }
@@ -194,12 +221,14 @@
   let redoStack = [];
 
   function snapshotData() {
-    return JSON.stringify({ grid: state.grid, ov: state.ov });
+    return JSON.stringify({ grid: state.grid, ov: state.ov, circleCatMap: state.circleCatMap });
   }
   function restoreData(snap) {
     const o = JSON.parse(snap);
     state.grid = o.grid;
     state.ov = o.ov;
+    // 💡 自動で割り当て済みの色が履歴の巻き戻しで変わらないよう、現在値の上に履歴の値を重ねる
+    state.circleCatMap = Object.assign(Object.create(null), state.circleCatMap, sanitizeCircleCatMap(o.circleCatMap));
   }
   // 💡 変更が起きる「前」に呼び出し、直前の状態を履歴として積む
   function pushHistory() {
@@ -529,6 +558,7 @@
     pushHistory();
     state.grid = SAMPLE.map(r => r.slice());
     state.ov = {};
+    state.circleCatMap = Object.create(null);
     save();
     renderGrid();
     render();
@@ -541,6 +571,7 @@
     pushHistory();
     state.grid = emptyGrid(MIN_ROWS);
     state.ov = {};
+    state.circleCatMap = Object.create(null);
     save();
     renderGrid();
     render();
@@ -562,11 +593,15 @@
     row.forEach((cell, ci) => {
       const n = norm(cell);
       if (!n) return;
+      // 💡 「サークルカテゴリ」は「サークル」「カテゴリ」を含むため、サークル名列・分類列と誤認しないよう先に専用判定する
+      if (!(CCAT_COL in map) && CCAT_SYN.some(s => n.includes(s))) { map[CCAT_COL] = ci; return; }
       for (const f of COLS) {
         if (!(f in map) && SYN[f].some(s => n.includes(s))) { map[f] = ci; break; }
       }
     });
-    return Object.keys(map).length >= 2 ? map : null;
+    // 💡 サークルカテゴリ列は任意なので、見出し行かどうかの判定(2列以上の一致)には数えない
+    const core = Object.keys(map).filter(k => k !== CCAT_COL).length;
+    return core >= 2 ? map : null;
   }
   const MAX_PRICE = 10000000; // 一千万円
   function parsePrice(raw) {
@@ -577,13 +612,6 @@
     //    有限値かつ現実的な上限内かを確認し、異常値は無効値として扱う
     if (!Number.isFinite(n) || n > MAX_PRICE) return null;
     return n;
-  }
-  function splitSpace(raw) {
-    const s = (raw || '').normalize('NFKC').trim();
-    if (!s) return { day: '', num: '' };
-    const m = s.match(/^(\d+日目|[月火水木金土日]曜日?|day\s?\d+)\s*[-‐‑–—ー・:\/\s]*\s*(.+)$/i);
-    if (m && /\d/.test(m[2])) return { day: m[1], num: m[2] };
-    return { day: '', num: s };
   }
   function splitSpace(raw) {
     const s = (raw || '').normalize('NFKC').trim();
@@ -623,7 +651,8 @@
         cat: get(r, 'cat'),
         price,
         priceText: price == null ? priceRaw : '',
-        note: get(r, 'note')
+        note: get(r, 'note'),
+        circleCat: get(r, CCAT_COL)
       };
       if (it.space || it.circle || it.title) items.push(it);
     });
@@ -665,6 +694,9 @@
       if (key && cur && cur.key === key) cur.items.push(it);
       else { cur = { key, day: it.day, num: it.num, circle: it.circle, items: [it] }; groups.push(cur); }
     });
+    // 💡 サークルカテゴリは、グループ内で入力順に見て最初に入力されているものを採用する(先頭優先)
+    //    ※カテゴリ順での並べ替えより前に決めることで、並び順に左右されないようにする
+    groups.forEach(g => { const f = g.items.find(it => it.circleCat); g.circleCat = f ? f.circleCat : ''; g.gp = 0; });
     // 💡 カテゴリ順は「並び替えを反映」で選んだ時だけ適用するオプション(既定では入力順のまま)
     if (catSort) {
       groups.forEach(g => { if (g.items.length > 1) g.items.sort((a, b) => catPriority(a) - catPriority(b)); });
@@ -758,10 +790,12 @@
   function groupCardHTML(g, mode, tm) {
     const multi = g.items.length > 1;
     const bodyHTML = g.items.map(it => entryHTML(it, mode, tm)).join('');
-    return `<li class="card${multi ? ' multi' : ''}">${groupHeadHTML(g, mode)}<div class="group-body">${bodyHTML}</div></li>`;
+    // 💡 サークルカテゴリの色・模様は data-circle-category(1〜8) をCSS側で一括制御する
+    const gAttr = g.gp ? ` data-circle-category="${g.gp}"` : '';
+    return `<li class="card${multi ? ' multi' : ''}"${gAttr}>${groupHeadHTML(g, mode)}<div class="group-body">${bodyHTML}</div></li>`;
   }
 
-  function rowHTML(it, mode, tm, spaceInfo, isMid, isLast) {
+  function rowHTML(it, mode, tm, spaceInfo, isMid, isLast, gp) {
     const on = mode === 'private' && effOn(it);
     const tagCls = it.cat ? tm(it.cat) : '';
     const chkTd = mode === 'private' ? `<td class="c-chk">${cbxHTML(it, on)}</td>` : '';
@@ -776,8 +810,9 @@
     const groupDoneCls = spaceInfo && spaceInfo.groupOn ? ' grp-purchased' : '';
     const spaceTd = spaceInfo ? `<td class="c-space dim${groupDoneCls}"${spanAttr}>${spaceLiteHTML(it, 'sv-tbl')}</td>` : '';
     const circleTd = spaceInfo ? `<td class="c-circle dim${groupDoneCls}"${spanAttr}>${it.circle ? esc(it.circle) : ''}</td>` : '';
+    const gAttr = gp ? ` data-circle-category="${gp}"` : '';
     const actTd = mode === 'private' ? `<td class="c-act">${itemActionsHTML(it)}</td>` : '';
-    return `<tr class="entryrow${on ? ' is-done' : ''}${isMid ? ' grp-mid' : ''}${isLast ? ' grp-last' : ''}">
+    return `<tr class="entryrow${on ? ' is-done' : ''}${isMid ? ' grp-mid' : ''}${isLast ? ' grp-last' : ''}"${gAttr}>
       ${chkTd}
       ${spaceTd}
       ${circleTd}
@@ -790,21 +825,22 @@
     </tr>`;
   }
 
-  function tableHTML(items, mode, tm) {
-    const groups = groupItems(items);
+  function tableHTML(groups, mode, tm) {
     const rows = groups.map((g, gi) => {
       const n = g.items.length;
       const isLastGroup = gi === groups.length - 1;
       // 💡 グループ内のいずれかの頒布物が購入済みなら true(スペース・サークル名の表示に使う)
       const groupOn = mode === 'private' && g.items.some(it => effOn(it));
       // grp-last = サークル境目 = 最終グループ以外のグループ最終行
-      return g.items.map((it, i) => rowHTML(it, mode, tm, i === 0 ? { rowspan: n, groupOn } : null, i < n - 1, !isLastGroup && i === n - 1)).join('');
+      return g.items.map((it, i) => rowHTML(it, mode, tm, i === 0 ? { rowspan: n, groupOn } : null, i < n - 1, !isLastGroup && i === n - 1, g.gp)).join('');
     }).join('');
     const chkTh = mode === 'private' ? '<th class="c-chk" scope="col">購入済</th>' : '';
     const actTh = mode === 'private' ? '<th class="c-act" scope="col">操作</th>' : '';
     // 💡 ユーザーがドラッグで調整した幅(state.circleColW)があれば、ブレークポイントに関わらず優先する
     const circleWStyle = state.circleColW ? ` style="--circle-w:${state.circleColW}px"` : '';
-    return `<div class="tbl-wrap"><table class="tbl"${circleWStyle}>
+    // 💡 サークルカテゴリの色帯がある表では、配置列を色帯の分だけ広げる(CSSの .has-ccat)
+    const hasCcat = groups.some(g => g.gp);
+    return `<div class="tbl-wrap"><table class="tbl${hasCcat ? ' has-ccat' : ''}"${circleWStyle}>
       <thead><tr>
         ${chkTh}
         <th class="c-space" scope="col">配置</th>
@@ -847,19 +883,127 @@
     </section>`;
   }
 
+  /* ---------- サークルカテゴリの色・模様 ---------- */
+  // 💡 グループごとのサークルカテゴリ名から、色・模様のプリセット番号(1〜8)を決めて g.gp に入れる。
+  //    ・初めて出てきたサークルカテゴリには、その時点で最も使われていないプリセットを割り当てて保存する
+  //      (並び替えやデータ編集で色が入れ替わらないよう、割り当ては state.circleCatMap に保持)
+  //    ・現在のデータに存在しないサークルカテゴリの割り当ては捨てる(入力途中の文字列が溜まり続けないように)
+  //    戻り値：現在のデータに出てくるサークルカテゴリの一覧(出現順)
+  function syncCircleCats(groups) {
+    const seen = new Map(); // 正規化キー → { key, label, count }
+    groups.forEach(g => {
+      if (!g.circleCat) return;
+      const key = norm(g.circleCat);
+      const e = seen.get(key);
+      if (e) e.count++; else seen.set(key, { key, label: g.circleCat, count: 1 });
+    });
+    const next = Object.create(null);
+    const used = new Array(CCAT_PRESET_COUNT).fill(0);
+    seen.forEach((e, key) => {
+      if (key in state.circleCatMap) { next[key] = state.circleCatMap[key]; used[next[key]]++; }
+    });
+    seen.forEach((e, key) => {
+      if (key in next) return;
+      let best = 0;
+      for (let i = 1; i < CCAT_PRESET_COUNT; i++) if (used[i] < used[best]) best = i;
+      next[key] = best; used[best]++;
+    });
+    const prevKeys = Object.keys(state.circleCatMap), nextKeys = Object.keys(next);
+    if (prevKeys.length !== nextKeys.length || nextKeys.some(k => state.circleCatMap[k] !== next[k])) {
+      state.circleCatMap = next;
+      save();
+    }
+    groups.forEach(g => { g.gp = g.circleCat ? next[norm(g.circleCat)] + 1 : 0; });
+    return Array.from(seen.values()).map(e => ({ key: e.key, label: e.label, count: e.count, preset: next[e.key] }));
+  }
+
+  function circleCatLegendHTML(ccats) {
+    if (!ccats.length) return '';
+    const items = ccats.map(g => `<span class="ccat-legend-item"><span class="ccat-sw" data-circle-category="${g.preset + 1}" aria-hidden="true"></span>${esc(g.label)}</span>`).join('');
+    return `<section class="ccat-legend" aria-label="サークルカテゴリの凡例"><span class="ccat-legend-ttl">サークルカテゴリ</span>${items}</section>`;
+  }
+
+  const ccatListEl = $('#ccatList'), btnAddCcatCol = $('#btnAddCcatCol');
+  let ccatPanelSig = '', ccatPanelHasCol = false, currentCcats = [];
+  const ccatSig = (ccats, hasCol) => hasCol + '|' + ccats.map(g => [g.key, g.preset, g.count, g.label].join(':')).join('\u0001');
+  const optionsHTML = (sel) => CCAT_PRESET_LABELS.map((l, i) => `<option value="${i}"${i === sel ? ' selected' : ''}>${i + 1}. ${l}</option>`).join('');
+
+  // 💡 設定パネル(折りたたみ)の更新。サークルカテゴリの内容が変わった時だけ作り直し、
+  //    セレクト操作中にフォーカスが外れないようにする
+  function renderCcatPanel(ccats) {
+    const map = detectHeader(state.grid[0]);
+    const hasCol = !!(map && CCAT_COL in map);
+    btnAddCcatCol.disabled = hasCol;
+    btnAddCcatCol.textContent = hasCol ? 'サークルカテゴリ列は追加済みです' : 'サークルカテゴリ列を追加';
+    currentCcats = ccats;
+    const sig = ccatSig(ccats, hasCol);
+    if (sig === ccatPanelSig) return;
+    ccatPanelSig = sig; ccatPanelHasCol = hasCol;
+    if (!ccats.length) {
+      ccatListEl.innerHTML = `<li class="ccat-empty">${hasCol ? '入力表の「サークルカテゴリ」列に入力すると、ここで色と模様を変更できます。' : '「サークルカテゴリ列を追加」を押すと、入力表の右端に列が追加されます。'}</li>`;
+      return;
+    }
+    ccatListEl.innerHTML = ccats.map((g, i) => `<li class="ccat-row">
+      <span class="ccat-sw" data-circle-category="${g.preset + 1}" aria-hidden="true"></span>
+      <span class="ccat-name">${esc(g.label)}<small>${g.count}件</small></span>
+      <select class="select ccat-sel" data-ck="${i}" aria-label="${esc(g.label)}の色と模様">${optionsHTML(g.preset)}</select>
+    </li>`).join('');
+  }
+
+  ccatListEl.addEventListener('change', (e) => {
+    const sel = e.target.closest('.ccat-sel');
+    if (!sel) return;
+    const g = currentCcats[Number(sel.dataset.ck)];
+    const v = Number(sel.value);
+    if (!g || !Number.isInteger(v) || v < 0 || v >= CCAT_PRESET_COUNT) return;
+    pushHistory();
+    state.circleCatMap[g.key] = v;
+    save();
+    // 💡 パネルは作り直さず、見本の色だけ更新してセレクトのフォーカスを保つ
+    const sw = sel.closest('.ccat-row').querySelector('.ccat-sw');
+    if (sw) sw.setAttribute('data-circle-category', String(v + 1));
+    g.preset = v;
+    ccatPanelSig = ccatSig(currentCcats, ccatPanelHasCol);
+    render();
+  });
+
+  // 💡 入力表の右端にサークルカテゴリ列(見出し「サークルカテゴリ」)を追加する。見出し行がある時だけ追加できる
+  btnAddCcatCol.addEventListener('click', () => {
+    const map = detectHeader(state.grid[0]);
+    if (!map) { showToast('1行目に見出し行(配置・サークル名など)があるときだけ追加できます。', 3600); return; }
+    if (CCAT_COL in map) { showToast('サークルカテゴリ列はすでにあります。'); return; }
+    const n = state.grid[0].length;
+    if (n >= MAX_COLS) { showToast(`列数が上限(${MAX_COLS}列)に達しています。`); return; }
+    pushHistory();
+    state.grid.forEach((row, r) => { while (row.length < n) row.push(''); row.push(r === 0 ? CCAT_HEADER : ''); });
+    save();
+    renderGrid();
+    render();
+    focusCell(1, n);
+    showToast('サークルカテゴリ列を追加しました。サークルごとに入力してください。', 3600);
+  });
+
   function render() {
     $('#sheetTitle').textContent = state.title.trim() || '頒布物リスト';
     const items = buildItems(state.grid);
     if (!items.length) {
       body.innerHTML = `<div class="empty"><p>表示するデータがありません</p><p>上のマス目にスプレッドシートの内容を貼り付けてください。</p><button type="button" class="btn btn-primary" data-act="sample">サンプルを読み込む</button></div>`;
+      renderCcatPanel([]);
       return;
     }
     const tm = makeTagMapper();
     const ordered = items; // 表示は常に入力順(並び替えは「並び替えを反映」で入力データ自体を並べ替える)
+    const groups = groupItems(ordered);
+    const ccats = syncCircleCats(groups);
     const list = state.view === 'card'
-      ? `<ul class="cards">${groupItems(ordered).map(g => groupCardHTML(g, state.mode, tm)).join('')}</ul>`
-      : tableHTML(ordered, state.mode, tm);
-    body.innerHTML = totalHTML(items, state.mode) + `<div id="list">${list}</div>`;
+      ? `<ul class="cards">${groups.map(g => groupCardHTML(g, state.mode, tm)).join('')}</ul>`
+      : tableHTML(groups, state.mode, tm);
+    // 💡 撮影モード(公開用表示)では、合計金額・凡例を選んだ通りに出し分ける
+    const isPublic = state.mode === 'public';
+    const totalPart = !isPublic || state.capShowTotal ? totalHTML(items, state.mode) : '';
+    const legendPart = !isPublic || state.capShowLegend ? circleCatLegendHTML(ccats) : '';
+    body.innerHTML = totalPart + legendPart + `<div id="list">${list}</div>`;
+    renderCcatPanel(ccats);
   }
 
   /* ---------- コントロール ---------- */
@@ -885,9 +1029,19 @@
   const optSortSpace = $('#optSortSpace'), optCatSort = $('#optCatSort');
   function syncControls() {
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+    document.querySelectorAll('input[data-cap]').forEach(i => { i.checked = i.dataset.cap === 'total' ? state.capShowTotal : state.capShowLegend; });
   }
 
   ttl.addEventListener('input', () => { state.title = ttl.value; save(); render(); });
+  // 💡 撮影モードで画像に写す項目(合計金額・凡例)の切り替え。設定バーと撮影ドックの両方から操作でき、状態は共通。
+  //    自分用の画面には影響しない(隠すのは撮影モード中だけ)。
+  document.querySelectorAll('input[data-cap]').forEach(i => i.addEventListener('change', () => {
+    if (i.dataset.cap === 'total') state.capShowTotal = i.checked; else state.capShowLegend = i.checked;
+    syncControls();
+    save();
+    render();
+    if (root.classList.contains('capture')) showDock(); // 操作中にドックが消えないよう、表示時間をリセット
+  }));
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; syncControls(); save(); render(); }));
   // 💡 「並び替えを反映」: 選んだ条件で入力データの行順そのものを一度だけ並べ替える。
   //    反映後は通常のデータと同じ扱いなので、その後の移動・削除は自由(元に戻すも可能)。
@@ -1044,7 +1198,7 @@
       c = document.createElement('canvas');
       c.width = w;
       c.height = h;
-      const ctx = c.getContext('2d');
+      const ctx = c.getContext('2d', { willReadFrequently: true });
       if (!ctx) return false;
       const corners = [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
       ctx.fillStyle = '#ff00ff';

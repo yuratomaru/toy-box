@@ -20,8 +20,6 @@
   <meta name="twitter:title" content="お品書き Viewer">
   <meta name="twitter:description" content="スプレッドシートから貼り付けた複数サークルのお品書きをプレビューするツール。画像書き出し機能付き。">
 
-  <link rel="canonical" href="https://yuratomaru.github.io/toy-box/oshinagaki-viewer/">
-
   <!-- favicon設定 -->
   <!-- SVG (モダンブラウザ用) -->
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
@@ -32,11 +30,13 @@
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
   <link rel="manifest" href="../assets/site.webmanifest">
 
+  <link rel="canonical" href="https://yuratomaru.github.io/toy-box/oshinagaki-viewer/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
   <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="../assets/footer.css">
 </head>
 
 <body>
@@ -86,6 +86,16 @@
           </div>
         </div>
       </details>
+
+      <details class="ccat-details">
+        <summary>サークルカテゴリの色・模様(任意)</summary>
+        <p class="hint ccat-hint">
+          入力表に「サークルカテゴリ」列を追加し、サークルごとに値(例：イラスト、小説)を入力すると、同じ値のサークルに同じ色と模様が付きます。同じ配置のグループに複数の入力がある場合は、先頭の入力が使われます。</p>
+        <div class="row">
+          <button type="button" class="btn" id="btnAddCcatCol">サークルカテゴリ列を追加</button>
+        </div>
+        <ul class="ccat-list" id="ccatList" aria-live="polite"></ul>
+      </details>
     </section>
 
     <section class="tool bar" aria-label="設定">
@@ -95,6 +105,19 @@
           <div class="seg" role="group" aria-label="表示形式">
             <button type="button" data-view="table" aria-pressed="false">テーブル</button>
             <button type="button" data-view="card" aria-pressed="false">カード</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-l">撮影時</span>
+          <div class="cap-opts" role="group" aria-label="撮影モードで表示する項目">
+            <label class="sort-opt">
+              <input type="checkbox" id="optCapTotal" data-cap="total">
+              合計金額を表示
+            </label>
+            <label class="sort-opt">
+              <input type="checkbox" id="optCapLegend" data-cap="legend">
+              サークルカテゴリの凡例を表示
+            </label>
           </div>
         </div>
       </div>
@@ -145,11 +168,27 @@
           画像を保存
         </button>
       </div>
+      <div class="dock-opts" role="group" aria-label="画像に写す項目">
+        <label class="sort-opt">
+          <input type="checkbox" data-cap="total">
+          合計金額
+        </label>
+        <label class="sort-opt">
+          <input type="checkbox" data-cap="legend">
+          凡例
+        </label>
+      </div>
       <button type="button" class="btn" id="btnExit">撮影モードを終了</button>
       <p class="dock-hint">このボタンは5秒後に消えます。画面の右下をタップすると再表示します。</p>
     </div>
   </div>
   <button type="button" class="reveal" id="reveal" aria-label="操作ボタンを表示"></button>
+
+  <footer class="site-footer">
+    <p>© 2026 YuraTomaru - <a href="https://opensource.org/licenses/MIT" rel="license">MIT License</a></p>
+    <p class="favicon-credit">Favicon: Icon by <a href="https://icons8.com/icons/set/geometry-geometric--blue"
+        rel="noopener">Icons8</a></p>
+  </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="src/main.js"></script>
